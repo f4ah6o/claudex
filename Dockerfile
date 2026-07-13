@@ -1,11 +1,10 @@
 FROM golang:1.26-bookworm AS builder
 
-WORKDIR /app
+WORKDIR /src
 
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential git && rm -rf /var/lib/apt/lists/*
 
 COPY go.mod go.sum ./
-
 RUN go mod download
 
 COPY . .
@@ -14,24 +13,20 @@ ARG VERSION=dev
 ARG COMMIT=none
 ARG BUILD_DATE=unknown
 
-RUN CGO_ENABLED=1 GOOS=linux go build -buildvcs=false -ldflags="-s -w -X 'main.Version=${VERSION}' -X 'main.Commit=${COMMIT}' -X 'main.BuildDate=${BUILD_DATE}'" -o ./CLIProxyAPI ./cmd/server/
+RUN CGO_ENABLED=1 GOOS=linux go build -buildvcs=false \
+    -ldflags="-s -w -X 'main.Version=${VERSION}' -X 'main.Commit=${COMMIT}' -X 'main.BuildDate=${BUILD_DATE}'" \
+    -o /out/claudex ./cmd/claudex
 
-FROM debian:bookworm
+FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends tzdata ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir /CLIProxyAPI
+WORKDIR /app
 
-COPY --from=builder ./app/CLIProxyAPI /CLIProxyAPI/CLIProxyAPI
-
-COPY config.example.yaml /CLIProxyAPI/config.example.yaml
-
-WORKDIR /CLIProxyAPI
+COPY --from=builder /out/claudex /app/claudex
+COPY claudex.example.yaml /app/claudex.example.yaml
 
 EXPOSE 8317
 
-ENV TZ=Asia/Shanghai
-
-RUN cp /usr/share/zoneinfo/${TZ} /etc/localtime && echo "${TZ}" > /etc/timezone
-
-CMD ["./CLIProxyAPI"]
+ENTRYPOINT ["/app/claudex"]
+CMD ["serve", "--config", "/app/claudex.yaml"]
