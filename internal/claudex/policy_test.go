@@ -14,14 +14,14 @@ func TestIsGPT56Model(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]bool{
-		"gpt-5.6":         true,
-		"gpt-5.6-sol":     true,
-		"gpt-5.6-codex":   true,
-		" GPT-5.6-SOL ":   true,
-		"gpt-5.60":        false,
-		"gpt-5.5":         false,
+		"gpt-5.6":          true,
+		"gpt-5.6-sol":      true,
+		"gpt-5.6-codex":    true,
+		" GPT-5.6-SOL ":    true,
+		"gpt-5.60":         false,
+		"gpt-5.5":          false,
 		"team/gpt-5.6-sol": false,
-		"claude-opus-4-6": false,
+		"claude-opus-4-6":  false,
 	}
 	for model, want := range tests {
 		model, want := model, want
@@ -126,5 +126,6 @@ func focusedConfig() *config.Config {
 				{Name: "gpt-5.6-sol", Alias: "claude-opus-4-6", Fork: true, ForceMapping: true},
 				{Name: "gpt-5.6-sol", Alias: "claude-sonnet-4-6", Fork: true, ForceMapping: true},
 			},
+		},
 	}
 }
