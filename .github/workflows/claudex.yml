@@ -1,0 +1,42 @@
+name: Claudex
+
+on:
+  pull_request:
+    paths:
+      - "cmd/claudex/**"
+      - "internal/claudex/**"
+      - "claudex.example.yaml"
+      - "Dockerfile"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/claudex.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "cmd/claudex/**"
+      - "internal/claudex/**"
+      - "claudex.example.yaml"
+      - "Dockerfile"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/claudex.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Check formatting
+        run: test -z "$(gofmt -l cmd/claudex internal/claudex)"
+      - name: Test focused packages
+        run: go test ./internal/claudex ./cmd/claudex
+      - name: Build Claudex
+        run: go build ./cmd/claudex
