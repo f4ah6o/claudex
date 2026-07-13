@@ -204,6 +204,10 @@ func Middleware(cfg *config.Config) gin.HandlerFunc {
 			abortAnthropic(c, http.StatusMethodNotAllowed, "invalid_request_error", "only POST is supported")
 			return
 		}
+		if c.Request.Body == nil {
+			abortAnthropic(c, http.StatusBadRequest, "invalid_request_error", "request body is required")
+			return
+		}
 
 		body, err := io.ReadAll(io.LimitReader(c.Request.Body, maxRequestBodyBytes+1))
 		if err != nil {
