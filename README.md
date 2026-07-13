@@ -79,10 +79,11 @@ The Claude model aliases in `claudex.yaml` provide a fallback when Claude Code s
 
 ## Docker
 
+Because Claudex enforces a loopback-only listener, use host networking on Linux:
+
 ````bash
 docker build -t claudex .
-docker run --rm \
-  -p 127.0.0.1:8317:8317 \
+docker run --rm --network host \
   -v "$PWD/claudex.yaml:/app/claudex.yaml:ro" \
   -v "$HOME/.claudex:/root/.claudex" \
   claudex
