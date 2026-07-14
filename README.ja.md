@@ -68,6 +68,26 @@ claude --model opus
 
 この使い分けを自動化する任意のシェルランチャーも用意できます。`claude` は通常の Anthropic Claude を起動し、別名の `claudex` はローカルゲートウェイを起動して `gpt-5.6-luna` と `xhigh` を指定した Claude Code を起動します。このリポジトリからビルドされる `./claudex` はゲートウェイサーバー本体です。
 
+## Windows ランチャー
+
+リポジトリには PowerShell ランチャーとコマンド shim を含めています。サーバーを別名でビルドし、`claudex-server.exe`、`claudex.ps1`、`claudex.cmd` を同じ `PATH` 上のディレクトリに配置します。
+
+```powershell
+$env:CGO_ENABLED = "0"
+$env:GOOS = "windows"
+$env:GOARCH = "amd64" # Windows on ARM では arm64
+go build -o claudex-server.exe ./cmd/claudex
+```
+
+設定ファイルを `CLAUDEX_CONFIG` に指定し、PowerShell またはコマンドプロンプトから `claudex` を実行します。
+
+```powershell
+$env:CLAUDEX_CONFIG = "$HOME\.config\claudex\claudex.yaml"
+claudex
+```
+
+ランチャーはサーバーが起動していなければ起動し、設定ファイルからローカルクライアントキーを読み取り、Claudex 用の環境変数を子プロセスの Claude Code にだけ渡します。`claude` は通常の Anthropic コマンドのままです。必要に応じて `CLAUDEX_SERVER_PATH`、`CLAUDEX_BASE_URL`、`CLAUDEX_LOG_DIR` で既定値を変更できます。
+
 ## 設定上の境界
 
 起動時に、Codex 以外のプロバイダー、プラグイン、リモート管理、ループバック以外への bind、または `gpt-5.6` / `gpt-5.6-*` 以外を対象にする alias を有効にした設定は拒否します。

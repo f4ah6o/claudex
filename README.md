@@ -68,6 +68,26 @@ claude --model opus
 
 An optional shell launcher can automate this separation: `claude` invokes the normal Anthropic client, while a separate `claudex` launcher starts the local gateway and invokes Claude Code with `gpt-5.6-luna` and `xhigh`. The `./claudex` binary built from this repository is the gateway server itself.
 
+## Windows launcher
+
+The repository includes a PowerShell launcher and a command shim. Build the server with a distinct name, then place `claudex-server.exe`, `claudex.ps1`, and `claudex.cmd` in the same directory on `PATH`:
+
+```powershell
+$env:CGO_ENABLED = "0"
+$env:GOOS = "windows"
+$env:GOARCH = "amd64" # use arm64 for Windows on ARM
+go build -o claudex-server.exe ./cmd/claudex
+```
+
+Set `CLAUDEX_CONFIG` to the configuration file and run `claudex` from PowerShell or Command Prompt:
+
+```powershell
+$env:CLAUDEX_CONFIG = "$HOME\.config\claudex\claudex.yaml"
+claudex
+```
+
+The launcher starts the server when it is not already running, reads the local client key from the configuration, and passes the Claudex environment only to the child Claude Code process. `claude` remains the normal Anthropic command. Set `CLAUDEX_SERVER_PATH`, `CLAUDEX_BASE_URL`, or `CLAUDEX_LOG_DIR` to override the defaults.
+
 ## Configuration boundaries
 
 At startup, Claudex rejects configurations that enable non-Codex providers, plugins, remote management, non-loopback binding, or aliases targeting models outside `gpt-5.6` / `gpt-5.6-*`.
