@@ -68,25 +68,25 @@ claude --model opus
 
 An optional shell launcher can automate this separation: `claude` invokes the normal Anthropic client, while a separate `claudex` launcher starts the local gateway and invokes Claude Code with `gpt-5.6-luna` and `xhigh`. The `./claudex` binary built from this repository is the gateway server itself.
 
-## Windows launcher
+## Cross-platform setup
 
-The repository includes a PowerShell launcher and a command shim. Build the server with a distinct name, then place `claudex-server.exe`, `claudex.ps1`, and `claudex.cmd` in the same directory on `PATH`:
+The repository includes a `justfile` and native launchers for Windows, macOS, and Linux. Install `just` once with Cargo, then run the setup task from the repository root:
 
-```powershell
-$env:CGO_ENABLED = "0"
-$env:GOOS = "windows"
-$env:GOARCH = "amd64" # use arm64 for Windows on ARM
-go build -o claudex-server.exe ./cmd/claudex
+```sh
+cargo install just --locked
+just setup
 ```
 
-Set `CLAUDEX_CONFIG` to the configuration file and run `claudex` from PowerShell or Command Prompt:
+`just setup` creates the configuration, generates the local client key, builds the native server, installs the launcher, and adds the launcher directory to the user `PATH` where the shell profile can be detected. On Windows ARM64 it uses `$HOME\\.config\\claudex\\claudex.yaml` and `$HOME\\bin`; on macOS/Linux it uses `${XDG_CONFIG_HOME:-$HOME/.config}/claudex/claudex.yaml` and `${XDG_BIN_HOME:-$HOME/.local/bin}`. Open a new terminal after setup.
 
-```powershell
-$env:CLAUDEX_CONFIG = "$HOME\.config\claudex\claudex.yaml"
-claudex
+Authenticate Codex with the browser OAuth flow and start Claude Code through the local gateway:
+
+```sh
+just login
+just run
 ```
 
-The launcher starts the server when it is not already running, reads the local client key from the configuration, and passes the Claudex environment only to the child Claude Code process. `claude` remains the normal Anthropic command. Set `CLAUDEX_SERVER_PATH`, `CLAUDEX_BASE_URL`, or `CLAUDEX_LOG_DIR` to override the defaults.
+Use `just serve` to run only the gateway, `just build` to rebuild the native launcher, `just verify` to run targeted tests and rebuild, and `claudex` directly after opening a new terminal. The launcher starts the server when it is not already running, reads the local client key from the configuration, and passes the Claudex environment only to the child Claude Code process. `claude` remains the normal Anthropic command.
 
 ## Configuration boundaries
 

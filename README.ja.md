@@ -68,25 +68,25 @@ claude --model opus
 
 この使い分けを自動化する任意のシェルランチャーも用意できます。`claude` は通常の Anthropic Claude を起動し、別名の `claudex` はローカルゲートウェイを起動して `gpt-5.6-luna` と `xhigh` を指定した Claude Code を起動します。このリポジトリからビルドされる `./claudex` はゲートウェイサーバー本体です。
 
-## Windows ランチャー
+## クロスプラットフォームセットアップ
 
-リポジトリには PowerShell ランチャーとコマンド shim を含めています。サーバーを別名でビルドし、`claudex-server.exe`、`claudex.ps1`、`claudex.cmd` を同じ `PATH` 上のディレクトリに配置します。
+リポジトリには `justfile` と、Windows・macOS・Linux で動作するネイティブランチャーを含めています。`just` を Cargo で一度だけ導入し、リポジトリのルートでセットアップタスクを実行します。
 
-```powershell
-$env:CGO_ENABLED = "0"
-$env:GOOS = "windows"
-$env:GOARCH = "amd64" # Windows on ARM では arm64
-go build -o claudex-server.exe ./cmd/claudex
+```sh
+cargo install just --locked
+just setup
 ```
 
-設定ファイルを `CLAUDEX_CONFIG` に指定し、PowerShell またはコマンドプロンプトから `claudex` を実行します。
+`just setup` は設定ファイルを作成し、ローカルクライアントキーを生成し、ネイティブサーバーをビルドしてランチャーを配置します。検出できるシェルではランチャーのディレクトリをユーザー `PATH` に追加します。Windows ARM64 では `$HOME\\.config\\claudex\\claudex.yaml` と `$HOME\\bin`、macOS/Linux では `${XDG_CONFIG_HOME:-$HOME/.config}/claudex/claudex.yaml` と `${XDG_BIN_HOME:-$HOME/.local/bin}` を使用します。セットアップ後は新しいターミナルを開いてください。
 
-```powershell
-$env:CLAUDEX_CONFIG = "$HOME\.config\claudex\claudex.yaml"
-claudex
+ブラウザ OAuth で Codex にログインし、ローカルゲートウェイ経由で Claude Code を起動します。
+
+```sh
+just login
+just run
 ```
 
-ランチャーはサーバーが起動していなければ起動し、設定ファイルからローカルクライアントキーを読み取り、Claudex 用の環境変数を子プロセスの Claude Code にだけ渡します。`claude` は通常の Anthropic コマンドのままです。必要に応じて `CLAUDEX_SERVER_PATH`、`CLAUDEX_BASE_URL`、`CLAUDEX_LOG_DIR` で既定値を変更できます。
+`just serve` はゲートウェイだけを起動し、`just build` はネイティブランチャーを再ビルドし、`just verify` は対象テストとビルドを実行します。新しいターミナルでは `claudex` を直接起動することもできます。ランチャーはサーバーが起動していなければ起動し、設定ファイルからローカルクライアントキーを読み取り、Claudex 用の環境変数を子プロセスの Claude Code にだけ渡します。`claude` は通常の Anthropic コマンドのままです。
 
 ## 設定上の境界
 
