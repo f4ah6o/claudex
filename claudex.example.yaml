@@ -40,31 +40,31 @@ quota-exceeded:
 # model. Direct gpt-5.6 and gpt-5.6-* model names are also accepted.
 oauth-model-alias:
   codex:
-    - name: "gpt-5.6-sol"
+    - name: "gpt-5.6-luna"
       alias: "claude-opus-4-8"
       fork: true
       force-mapping: true
-    - name: "gpt-5.6-sol"
+    - name: "gpt-5.6-luna"
       alias: "claude-opus-4-7"
       fork: true
       force-mapping: true
-    - name: "gpt-5.6-sol"
+    - name: "gpt-5.6-luna"
       alias: "claude-opus-4-6"
       fork: true
       force-mapping: true
-    - name: "gpt-5.6-sol"
+    - name: "gpt-5.6-luna"
       alias: "claude-sonnet-5"
       fork: true
       force-mapping: true
-    - name: "gpt-5.6-sol"
+    - name: "gpt-5.6-luna"
       alias: "claude-sonnet-4-6"
       fork: true
       force-mapping: true
-    - name: "gpt-5.6-sol"
+    - name: "gpt-5.6-luna"
       alias: "claude-haiku-4-5"
       fork: true
       force-mapping: true
-    - name: "gpt-5.6-sol"
+    - name: "gpt-5.6-luna"
       alias: "claude-haiku-4-5-20251001"
       fork: true
       force-mapping: true
