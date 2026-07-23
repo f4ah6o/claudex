@@ -18,6 +18,9 @@
 
 ### Security
 
+- Updated the Go toolchain requirement and vulnerable Go dependencies; `govulncheck` now reports no reachable vulnerabilities.
+
 ### Migration
 
 - On macOS, build `ClaudexDesktop.app`, run its bundled Codex login command once, and launch the app from Finder for the Desktop Gateway workflow.
+- Builds now require Go 1.26.5 or newer.
