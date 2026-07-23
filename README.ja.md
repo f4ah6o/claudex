@@ -68,6 +68,20 @@ claude --model opus
 
 この使い分けを自動化する任意のシェルランチャーも用意できます。`claude` は通常の Anthropic Claude を起動し、別名の `claudex` はローカルゲートウェイを起動して `gpt-5.6-luna` と `xhigh` を指定した Claude Code を起動します。このリポジトリからビルドされる `./claudex` はゲートウェイサーバー本体です。
 
+## macOSのClaude Code Desktop
+
+Finderから起動できる `ClaudexDesktop.app` をビルドします。
+
+```sh
+./script/build_and_run.sh --verify
+```
+
+Finderから起動したい場合は `dist/ClaudexDesktop.app` を `~/Applications` にコピーしてください。初回起動時に `~/.config/claudex/claudex.yaml` を作成し、同梱サーバーを使ったCodexログインコマンドを表示します。コマンドを一度実行してから、もう一度 `ClaudexDesktop` を起動します。
+
+`ClaudexDesktop` はループバックゲートウェイを起動し、Claude Desktopの公式Third-Party Inference Gateway設定を有効にしてからClaude Desktopを開きます。表示するモデルは `Codex GPT-5.6 Luna (xhigh)` の1件に固定し、セッション終了時に通常のClaude Desktop設定へ戻します。ランチャーが中断された場合は、もう一度 `ClaudexDesktop` を開くと、保留中のバックアップを復元してから起動します。
+
+標準の `Claude Desktop` アプリ本体は変更しません。Desktopのプロバイダー設定は `ClaudexDesktop` がセッションを管理している間だけ変更し、ゲートウェイはループバック限定で、Claude Desktop終了後も常駐できます。
+
 ## クロスプラットフォームセットアップ
 
 リポジトリには `justfile` と、Windows・macOS・Linux で動作するネイティブランチャーを含めています。`just` を Cargo で一度だけ導入し、リポジトリのルートでセットアップタスクを実行します。
@@ -92,7 +106,7 @@ just run
 
 起動時に、Codex 以外のプロバイダー、プラグイン、リモート管理、ループバック以外への bind、または `gpt-5.6` / `gpt-5.6-*` 以外を対象にする alias を有効にした設定は拒否します。
 
-リクエスト時に公開するのは `/v1/messages` と `/v1/messages/count_tokens` のみです。その他の汎用プロキシ用ルートは Anthropic 互換の 404 を返します。
+リクエスト時にAnthropicクライアントへ公開するのは `/v1/models`、`/v1/messages`、`/v1/messages/count_tokens` です。Desktopのモデル一覧にはCodex固定モデル1件だけを返します。その他の汎用プロキシ用ルートは Anthropic 互換の 404 を返します。
 
 ## Docker
 

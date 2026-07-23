@@ -72,19 +72,20 @@ const (
 )
 
 type serverOptionConfig struct {
-	extraMiddleware       []gin.HandlerFunc
-	engineConfigurator    func(*gin.Engine)
-	routerConfigurator    func(*gin.Engine, *handlers.BaseAPIHandler, *config.Config)
-	requestLoggerFactory  func(*config.Config, string) logging.RequestLogger
-	localPassword         string
-	keepAliveEnabled      bool
-	keepAliveTimeout      time.Duration
-	keepAliveOnTimeout    func()
-	postAuthHook          auth.PostAuthHook
-	postAuthPersistHook   auth.PostAuthHook
-	pluginHost            *pluginhost.Host
-	configReloadHook      func(context.Context, *config.Config)
-	exampleAPIKeySafeMode bool
+	extraMiddleware        []gin.HandlerFunc
+	engineConfigurator     func(*gin.Engine)
+	routerConfigurator     func(*gin.Engine, *handlers.BaseAPIHandler, *config.Config)
+	anthropicModelsHandler gin.HandlerFunc
+	requestLoggerFactory   func(*config.Config, string) logging.RequestLogger
+	localPassword          string
+	keepAliveEnabled       bool
+	keepAliveTimeout       time.Duration
+	keepAliveOnTimeout     func()
+	postAuthHook           auth.PostAuthHook
+	postAuthPersistHook    auth.PostAuthHook
+	pluginHost             *pluginhost.Host
+	configReloadHook       func(context.Context, *config.Config)
+	exampleAPIKeySafeMode  bool
 }
 
 // ServerOption customises HTTP server construction.
@@ -127,6 +128,15 @@ func WithEngineConfigurator(fn func(*gin.Engine)) ServerOption {
 func WithRouterConfigurator(fn func(*gin.Engine, *handlers.BaseAPIHandler, *config.Config)) ServerOption {
 	return func(cfg *serverOptionConfig) {
 		cfg.routerConfigurator = fn
+	}
+}
+
+// WithAnthropicModelsHandler overrides the Anthropic-format /v1/models response.
+// It is intended for focused gateway integrations that expose a client-specific
+// model catalog while retaining the shared API server and authentication stack.
+func WithAnthropicModelsHandler(handler gin.HandlerFunc) ServerOption {
+	return func(cfg *serverOptionConfig) {
+		cfg.anthropicModelsHandler = handler
 	}
 }
 
@@ -222,6 +232,8 @@ type Server struct {
 	// requestLogger is the request logger instance for dynamic configuration updates.
 	requestLogger logging.RequestLogger
 	loggerToggle  func(bool)
+
+	anthropicModelsHandler gin.HandlerFunc
 
 	// configFilePath is the absolute path to the YAML config file for persistence.
 	configFilePath string
@@ -324,17 +336,18 @@ func NewServer(cfg *config.Config, authManager *auth.Manager, accessManager *sdk
 
 	// Create server instance
 	s := &Server{
-		engine:              engine,
-		handlers:            handlers.NewBaseAPIHandlers(effectiveSDKConfig(cfg), authManager),
-		cfg:                 cfg,
-		accessManager:       accessManager,
-		requestLogger:       requestLogger,
-		loggerToggle:        toggle,
-		configFilePath:      configFilePath,
-		currentPath:         wd,
-		envManagementSecret: envManagementSecret,
-		wsRoutes:            make(map[string]struct{}),
-		pluginHost:          optionState.pluginHost,
+		engine:                 engine,
+		handlers:               handlers.NewBaseAPIHandlers(effectiveSDKConfig(cfg), authManager),
+		cfg:                    cfg,
+		accessManager:          accessManager,
+		anthropicModelsHandler: optionState.anthropicModelsHandler,
+		requestLogger:          requestLogger,
+		loggerToggle:           toggle,
+		configFilePath:         configFilePath,
+		currentPath:            wd,
+		envManagementSecret:    envManagementSecret,
+		wsRoutes:               make(map[string]struct{}),
+		pluginHost:             optionState.pluginHost,
 
 		exampleAPIKeySafeModeEnabled: optionState.exampleAPIKeySafeMode,
 	}
@@ -1162,6 +1175,11 @@ func isAnthropicModelsRequest(c *gin.Context) bool {
 // route to the Claude handler, otherwise they route to the OpenAI handler.
 func (s *Server) unifiedModelsHandler(openaiHandler *openai.OpenAIAPIHandler, claudeHandler *claude.ClaudeCodeAPIHandler) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if s != nil && s.anthropicModelsHandler != nil && isAnthropicModelsRequest(c) {
+			s.anthropicModelsHandler(c)
+			return
+		}
+
 		if _, ok := c.Request.URL.Query()["client_version"]; ok {
 			if s != nil && s.cfg != nil && s.cfg.Home.Enabled {
 				s.handleHomeCodexClientModels(c)

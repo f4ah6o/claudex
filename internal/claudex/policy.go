@@ -11,15 +11,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
+	"github.com/tidwall/sjson"
 )
 
 const (
 	DefaultHost           = "127.0.0.1"
 	DefaultPort           = 8317
 	DefaultAuthDir        = "~/.claudex"
+	FixedModelID          = "claude-sonnet-4-6"
+	FixedUpstreamModel    = "gpt-5.6-luna"
+	FixedEffort           = "xhigh"
 	maxRequestBodyBytes   = 32 << 20
 	anthropicMessagesPath = "/v1/messages"
 	anthropicCountPath    = "/v1/messages/count_tokens"
+	anthropicModelsPath   = "/v1/models"
 )
 
 // Policy restricts the generic proxy core to the surface needed by Claude Code
@@ -43,6 +48,34 @@ func Normalize(cfg *config.Config) {
 	if strings.TrimSpace(cfg.AuthDir) == "" {
 		cfg.AuthDir = DefaultAuthDir
 	}
+	ensureFixedModelAlias(cfg)
+}
+
+func ensureFixedModelAlias(cfg *config.Config) {
+	if cfg == nil {
+		return
+	}
+	if cfg.OAuthModelAlias == nil {
+		cfg.OAuthModelAlias = make(map[string][]config.OAuthModelAlias)
+	}
+
+	aliases := cfg.OAuthModelAlias["codex"]
+	for index := range aliases {
+		if strings.EqualFold(strings.TrimSpace(aliases[index].Alias), FixedModelID) {
+			aliases[index].Name = FixedUpstreamModel
+			aliases[index].Fork = true
+			aliases[index].ForceMapping = true
+			cfg.OAuthModelAlias["codex"] = aliases
+			return
+		}
+	}
+
+	cfg.OAuthModelAlias["codex"] = append(aliases, config.OAuthModelAlias{
+		Name:         FixedUpstreamModel,
+		Alias:        FixedModelID,
+		Fork:         true,
+		ForceMapping: true,
+	})
 }
 
 // Validate verifies that a generic CLIProxyAPI configuration stays within the
@@ -140,6 +173,7 @@ func ValidateServe(cfg *config.Config) error {
 // NewPolicy builds the client-visible alias map accepted by the model gate.
 func NewPolicy(cfg *config.Config) Policy {
 	p := Policy{aliases: make(map[string]string)}
+	p.aliases[FixedModelID] = FixedUpstreamModel
 	if cfg == nil {
 		return p
 	}
@@ -192,6 +226,14 @@ func Middleware(cfg *config.Config) gin.HandlerFunc {
 			c.Next()
 			return
 		}
+		if path == anthropicModelsPath {
+			if c.Request.Method != http.MethodGet || !isAnthropicModelsRequest(c) {
+				abortAnthropic(c, http.StatusNotFound, "not_found_error", "Claudex exposes only the Anthropic Messages API")
+				return
+			}
+			c.Next()
+			return
+		}
 		if path != anthropicMessagesPath && path != anthropicCountPath {
 			abortAnthropic(c, http.StatusNotFound, "not_found_error", "Claudex exposes only the Anthropic Messages API")
 			return
@@ -230,11 +272,35 @@ func Middleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 		if !policy.AllowsModel(request.Model) {
-			abortAnthropic(c, http.StatusBadRequest, "invalid_request_error", fmt.Sprintf("model %q is not allowed; use gpt-5.6 or gpt-5.6-*", request.Model))
+			abortAnthropic(c, http.StatusBadRequest, "invalid_request_error", fmt.Sprintf("model %q is not allowed; use %s", request.Model, FixedModelID))
 			return
+		}
+		if path == anthropicMessagesPath {
+			body, err = forceFixedEffort(body)
+			if err != nil {
+				abortAnthropic(c, http.StatusBadRequest, "invalid_request_error", "could not apply the fixed effort setting")
+				return
+			}
+			c.Request.Body = io.NopCloser(bytes.NewReader(body))
+			c.Request.ContentLength = int64(len(body))
 		}
 		c.Next()
 	}
+}
+
+func forceFixedEffort(body []byte) ([]byte, error) {
+	updated, err := sjson.SetBytes(body, "thinking.type", "adaptive")
+	if err != nil {
+		return nil, err
+	}
+	return sjson.SetBytes(updated, "output_config.effort", FixedEffort)
+}
+
+func isAnthropicModelsRequest(c *gin.Context) bool {
+	if c.GetHeader("Anthropic-Version") != "" {
+		return true
+	}
+	return strings.HasPrefix(c.GetHeader("User-Agent"), "claude-cli")
 }
 
 func isLoopbackHost(host string) bool {

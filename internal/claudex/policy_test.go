@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
+	"github.com/tidwall/gjson"
 )
 
 func TestIsGPT56Model(t *testing.T) {
@@ -71,6 +72,36 @@ func TestPolicyAllowsConfiguredClaudeAliases(t *testing.T) {
 	}
 }
 
+func TestNormalizeAddsFixedModelAlias(t *testing.T) {
+	t.Parallel()
+
+	cfg := &config.Config{}
+	Normalize(cfg)
+
+	if len(cfg.OAuthModelAlias["codex"]) != 1 {
+		t.Fatalf("fixed aliases = %#v, want one alias", cfg.OAuthModelAlias["codex"])
+	}
+	alias := cfg.OAuthModelAlias["codex"][0]
+	if alias.Name != FixedUpstreamModel || alias.Alias != FixedModelID || !alias.Fork || !alias.ForceMapping {
+		t.Fatalf("fixed alias = %#v, want %s -> %s with forced fork", alias, FixedModelID, FixedUpstreamModel)
+	}
+}
+
+func TestForceFixedEffort(t *testing.T) {
+	t.Parallel()
+
+	body, err := forceFixedEffort([]byte(`{"model":"claude-sonnet-4-6","thinking":{"type":"disabled"}}`))
+	if err != nil {
+		t.Fatalf("forceFixedEffort() error = %v", err)
+	}
+	if got := gjson.GetBytes(body, "thinking.type").String(); got != "adaptive" {
+		t.Fatalf("thinking.type = %q, want adaptive", got)
+	}
+	if got := gjson.GetBytes(body, "output_config.effort").String(); got != FixedEffort {
+		t.Fatalf("output_config.effort = %q, want %q", got, FixedEffort)
+	}
+}
+
 func TestMiddlewareRestrictsRoutesAndModels(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -95,8 +126,20 @@ func TestMiddlewareRestrictsRoutesAndModels(t *testing.T) {
 		}
 	}
 
-	request := httptest.NewRequest(http.MethodPost, anthropicMessagesPath, strings.NewReader(`{"model":"gpt-5.5"}`))
+	request := httptest.NewRequest(http.MethodGet, anthropicModelsPath, nil)
+	request.Header.Set("Anthropic-Version", "2023-06-01")
 	response := httptest.NewRecorder()
+	router.GET(anthropicModelsPath, func(c *gin.Context) {
+		handled++
+		c.Status(http.StatusNoContent)
+	})
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("Anthropic models status = %d, want %d; body=%s", response.Code, http.StatusNoContent, response.Body.String())
+	}
+
+	request = httptest.NewRequest(http.MethodPost, anthropicMessagesPath, strings.NewReader(`{"model":"gpt-5.5"}`))
+	response = httptest.NewRecorder()
 	router.ServeHTTP(response, request)
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("unsupported model status = %d, want %d", response.Code, http.StatusBadRequest)
@@ -108,8 +151,8 @@ func TestMiddlewareRestrictsRoutesAndModels(t *testing.T) {
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("generic route status = %d, want %d", response.Code, http.StatusNotFound)
 	}
-	if handled != 2 {
-		t.Fatalf("handler called %d times, want 2", handled)
+	if handled != 3 {
+		t.Fatalf("handler called %d times, want 3", handled)
 	}
 }
 

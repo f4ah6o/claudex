@@ -68,6 +68,20 @@ claude --model opus
 
 An optional shell launcher can automate this separation: `claude` invokes the normal Anthropic client, while a separate `claudex` launcher starts the local gateway and invokes Claude Code with `gpt-5.6-luna` and `xhigh`. The `./claudex` binary built from this repository is the gateway server itself.
 
+## Claude Code Desktop on macOS
+
+Build the Finder-launchable `ClaudexDesktop.app`:
+
+```sh
+./script/build_and_run.sh --verify
+```
+
+Copy `dist/ClaudexDesktop.app` to `~/Applications` if you want to launch it from Finder. On first launch, the app creates `~/.config/claudex/claudex.yaml` and shows the bundled Codex login command. Run that command once, then launch `ClaudexDesktop` again.
+
+`ClaudexDesktop` starts the loopback gateway, configures Claude Desktop's official Third-Party Inference Gateway settings, and opens Claude Desktop. It exposes one fixed model, `Codex GPT-5.6 Luna (xhigh)`, and restores the previous standard Claude Desktop settings when the session ends. If the launcher is interrupted, open `ClaudexDesktop` again to restore the pending settings backup before starting another session.
+
+The standard `Claude Desktop` app bundle is not modified. The Desktop provider preference is changed only while `ClaudexDesktop` owns the session; the gateway remains loopback-only and can stay running after Claude Desktop exits.
+
 ## Cross-platform setup
 
 The repository includes a `justfile` and native launchers for Windows, macOS, and Linux. Install `just` once with Cargo, then run the setup task from the repository root:
@@ -92,7 +106,7 @@ Use `just serve` to run only the gateway, `just build` to rebuild the native lau
 
 At startup, Claudex rejects configurations that enable non-Codex providers, plugins, remote management, non-loopback binding, or aliases targeting models outside `gpt-5.6` / `gpt-5.6-*`.
 
-At request time, only `/v1/messages` and `/v1/messages/count_tokens` are exposed. Other generic proxy routes return an Anthropic-compatible 404 response.
+At request time, Anthropic clients may use `/v1/models`, `/v1/messages`, and `/v1/messages/count_tokens`. The Desktop model catalog contains only the fixed Codex-backed entry. Other generic proxy routes return an Anthropic-compatible 404 response.
 
 ## Docker
 

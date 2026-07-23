@@ -91,7 +91,10 @@ func runServe(args []string) error {
 	service, err := cliproxy.NewBuilder().
 		WithConfig(cfg).
 		WithConfigPath(resolvedPath).
-		WithServerOptions(sdkapi.WithMiddleware(claudex.Middleware(cfg))).
+		WithServerOptions(
+			sdkapi.WithMiddleware(claudex.Middleware(cfg)),
+			sdkapi.WithAnthropicModelsHandler(claudex.FixedModelsHandler()),
+		).
 		Build()
 	if err != nil {
 		return fmt.Errorf("build service: %w", err)
@@ -99,7 +102,7 @@ func runServe(args []string) error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	fmt.Printf("Claudex %s listening on http://%s:%d (models: gpt-5.6, gpt-5.6-*)\n", Version, cfg.Host, cfg.Port)
+	fmt.Printf("Claudex %s listening on http://%s:%d (model: %s -> %s, effort: %s)\n", Version, cfg.Host, cfg.Port, claudex.FixedModelID, claudex.FixedUpstreamModel, claudex.FixedEffort)
 	if err = service.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("run service: %w", err)
 	}
