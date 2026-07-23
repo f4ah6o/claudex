@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
+	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
 
@@ -20,7 +21,7 @@ const (
 	DefaultAuthDir        = "~/.claudex"
 	FixedModelID          = "claude-sonnet-4-6"
 	FixedUpstreamModel    = "gpt-5.6-luna"
-	FixedEffort           = "xhigh"
+	DefaultEffort         = "xhigh"
 	maxRequestBodyBytes   = 32 << 20
 	anthropicMessagesPath = "/v1/messages"
 	anthropicCountPath    = "/v1/messages/count_tokens"
@@ -48,10 +49,10 @@ func Normalize(cfg *config.Config) {
 	if strings.TrimSpace(cfg.AuthDir) == "" {
 		cfg.AuthDir = DefaultAuthDir
 	}
-	ensureFixedModelAlias(cfg)
+	ensureModelAliases(cfg)
 }
 
-func ensureFixedModelAlias(cfg *config.Config) {
+func ensureModelAliases(cfg *config.Config) {
 	if cfg == nil {
 		return
 	}
@@ -60,22 +61,27 @@ func ensureFixedModelAlias(cfg *config.Config) {
 	}
 
 	aliases := cfg.OAuthModelAlias["codex"]
-	for index := range aliases {
-		if strings.EqualFold(strings.TrimSpace(aliases[index].Alias), FixedModelID) {
-			aliases[index].Name = FixedUpstreamModel
-			aliases[index].Fork = true
-			aliases[index].ForceMapping = true
-			cfg.OAuthModelAlias["codex"] = aliases
-			return
+	for _, profile := range ModelProfiles() {
+		found := false
+		for index := range aliases {
+			if strings.EqualFold(strings.TrimSpace(aliases[index].Alias), profile.ID) {
+				aliases[index].Name = profile.Upstream
+				aliases[index].Fork = true
+				aliases[index].ForceMapping = true
+				found = true
+				break
+			}
+		}
+		if !found {
+			aliases = append(aliases, config.OAuthModelAlias{
+				Name:         profile.Upstream,
+				Alias:        profile.ID,
+				Fork:         true,
+				ForceMapping: true,
+			})
 		}
 	}
-
-	cfg.OAuthModelAlias["codex"] = append(aliases, config.OAuthModelAlias{
-		Name:         FixedUpstreamModel,
-		Alias:        FixedModelID,
-		Fork:         true,
-		ForceMapping: true,
-	})
+	cfg.OAuthModelAlias["codex"] = aliases
 }
 
 // Validate verifies that a generic CLIProxyAPI configuration stays within the
@@ -173,7 +179,9 @@ func ValidateServe(cfg *config.Config) error {
 // NewPolicy builds the client-visible alias map accepted by the model gate.
 func NewPolicy(cfg *config.Config) Policy {
 	p := Policy{aliases: make(map[string]string)}
-	p.aliases[FixedModelID] = FixedUpstreamModel
+	for _, profile := range ModelProfiles() {
+		p.aliases[profile.ID] = profile.Upstream
+	}
 	if cfg == nil {
 		return p
 	}
@@ -272,13 +280,13 @@ func Middleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 		if !policy.AllowsModel(request.Model) {
-			abortAnthropic(c, http.StatusBadRequest, "invalid_request_error", fmt.Sprintf("model %q is not allowed; use %s", request.Model, FixedModelID))
+			abortAnthropic(c, http.StatusBadRequest, "invalid_request_error", fmt.Sprintf("model %q is not allowed; use one of the configured Claudex models", request.Model))
 			return
 		}
 		if path == anthropicMessagesPath {
-			body, err = forceFixedEffort(body)
+			body, err = applyDefaultEffort(body)
 			if err != nil {
-				abortAnthropic(c, http.StatusBadRequest, "invalid_request_error", "could not apply the fixed effort setting")
+				abortAnthropic(c, http.StatusBadRequest, "invalid_request_error", "could not apply the default effort setting")
 				return
 			}
 			c.Request.Body = io.NopCloser(bytes.NewReader(body))
@@ -288,12 +296,16 @@ func Middleware(cfg *config.Config) gin.HandlerFunc {
 	}
 }
 
-func forceFixedEffort(body []byte) ([]byte, error) {
+func applyDefaultEffort(body []byte) ([]byte, error) {
+	thinkingType := strings.ToLower(strings.TrimSpace(gjson.GetBytes(body, "thinking.type").String()))
+	if thinkingType == "disabled" || gjson.GetBytes(body, "output_config.effort").Exists() {
+		return body, nil
+	}
 	updated, err := sjson.SetBytes(body, "thinking.type", "adaptive")
 	if err != nil {
 		return nil, err
 	}
-	return sjson.SetBytes(updated, "output_config.effort", FixedEffort)
+	return sjson.SetBytes(updated, "output_config.effort", DefaultEffort)
 }
 
 func isAnthropicModelsRequest(c *gin.Context) bool {

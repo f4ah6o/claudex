@@ -6,14 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -21,7 +19,6 @@ import (
 
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/claudex"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
-	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
 )
 
 const (
@@ -48,8 +45,33 @@ type preferenceValue struct {
 }
 
 type preferenceSnapshot struct {
-	Values map[string]preferenceValue `json:"values"`
+	Values        map[string]preferenceValue `json:"values"`
+	ConfigLibrary configLibrarySnapshot      `json:"configLibrary"`
 }
+
+type fileSnapshot struct {
+	Present  bool   `json:"present"`
+	Contents []byte `json:"contents,omitempty"`
+}
+
+type configLibrarySnapshot struct {
+	MetaPath   string       `json:"metaPath"`
+	ConfigPath string       `json:"configPath"`
+	Meta       fileSnapshot `json:"meta"`
+	Config     fileSnapshot `json:"config"`
+}
+
+type configLibraryMeta struct {
+	AppliedID string               `json:"appliedId"`
+	Entries   []configLibraryEntry `json:"entries"`
+}
+
+type configLibraryEntry struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+var configLibraryIDPattern = regexp.MustCompile(`^[a-f0-9-]{36}$`)
 
 func main() {
 	if err := run(); err != nil {
@@ -82,11 +104,11 @@ func run() error {
 		return nil
 	}
 
-	cfg, err := loadConfig(configPath)
+	cfg, _, err := claudex.LoadServeConfig(configPath)
 	if err != nil {
 		return err
 	}
-	localKey, err := localAPIKey(cfg)
+	localKey, err := claudex.LocalAPIKey(cfg)
 	if err != nil {
 		return err
 	}
@@ -125,7 +147,7 @@ func run() error {
 		})
 	}
 	defer restore()
-	if err = applyGatewayPreferences(buildBaseURL(cfg), localKey); err != nil {
+	if err = applyGatewayPreferences(claudex.ServerURL(cfg), localKey, snapshot.ConfigLibrary); err != nil {
 		return err
 	}
 
@@ -247,50 +269,14 @@ func writePrivateFile(path string, contents []byte) error {
 	return os.Rename(temporaryName, path)
 }
 
-func loadConfig(path string) (*config.Config, error) {
-	cfg, err := config.LoadConfigOptional(path, false)
-	if err != nil {
-		return nil, fmt.Errorf("load %s: %w", path, err)
-	}
-	claudex.Normalize(cfg)
-	resolvedAuthDir, err := util.ResolveAuthDir(cfg.AuthDir)
-	if err != nil {
-		return nil, fmt.Errorf("resolve auth directory: %w", err)
-	}
-	cfg.AuthDir = resolvedAuthDir
-	if err = claudex.ValidateServe(cfg); err != nil {
-		return nil, err
-	}
-	return cfg, nil
-}
-
-func localAPIKey(cfg *config.Config) (string, error) {
-	for _, key := range cfg.APIKeys {
-		key = strings.TrimSpace(key)
-		if key != "" && !strings.HasPrefix(strings.ToLower(key), "replace-") && !strings.HasPrefix(strings.ToLower(key), "your-api-key") {
-			return key, nil
-		}
-	}
-	return "", errors.New("Claudex configuration does not contain a usable local API key")
-}
-
 func hasAuthMaterial(path string) bool {
 	path = expandHome(path)
 	entries, err := os.ReadDir(path)
 	return err == nil && len(entries) > 0
 }
 
-func buildBaseURL(cfg *config.Config) string {
-	return "http://" + net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
-}
-
 func startServer(cfg *config.Config, configPath string) (*exec.Cmd, error) {
-	baseURL := buildBaseURL(cfg)
-	localKey, err := localAPIKey(cfg)
-	if err != nil {
-		return nil, err
-	}
-	if waitForClaudex(baseURL, localKey, 1) {
+	if claudex.WaitForServer(cfg, 1) {
 		return nil, nil
 	}
 	serverPath := resolveResourcePath("claudex-server")
@@ -320,50 +306,12 @@ func startServer(cfg *config.Config, configPath string) (*exec.Cmd, error) {
 	}
 	_ = stdout.Close()
 	_ = stderr.Close()
-	if !waitForClaudex(baseURL, localKey, 60) {
+	if !claudex.WaitForServer(cfg, 60) {
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
-		return nil, fmt.Errorf("Claudex server did not become ready at %s; see ~/.claudex/desktop-serve.stderr.log", baseURL)
+		return nil, fmt.Errorf("Claudex server did not become ready at %s; see ~/.claudex/desktop-serve.stderr.log", claudex.ServerURL(cfg))
 	}
 	return cmd, nil
-}
-
-func waitForClaudex(baseURL, localKey string, seconds int) bool {
-	for attempt := 0; attempt < seconds*4; attempt++ {
-		request, err := http.NewRequest(http.MethodGet, strings.TrimRight(baseURL, "/")+"/v1/models", nil)
-		if err == nil {
-			request.Header.Set("Authorization", "Bearer "+localKey)
-			request.Header.Set("Anthropic-Version", "2023-06-01")
-		}
-		if err == nil {
-			response, err := http.DefaultClient.Do(request)
-			if err == nil {
-				var payload struct {
-					Data []struct {
-						ID string `json:"id"`
-					} `json:"data"`
-				}
-				decodeErr := json.NewDecoder(response.Body).Decode(&payload)
-				_ = response.Body.Close()
-				if response.StatusCode == http.StatusOK && decodeErr == nil && hasFixedModel(payload.Data) {
-					return true
-				}
-			}
-		}
-		time.Sleep(250 * time.Millisecond)
-	}
-	return false
-}
-
-func hasFixedModel(models []struct {
-	ID string `json:"id"`
-}) bool {
-	for _, model := range models {
-		if model.ID == claudex.FixedModelID {
-			return true
-		}
-	}
-	return false
 }
 
 func capturePreferences() (preferenceSnapshot, error) {
@@ -375,6 +323,11 @@ func capturePreferences() (preferenceSnapshot, error) {
 		}
 		snapshot.Values[key] = preferenceValue{Present: present, Value: value}
 	}
+	configLibrary, err := captureConfigLibrary()
+	if err != nil {
+		return preferenceSnapshot{}, err
+	}
+	snapshot.ConfigLibrary = configLibrary
 	return snapshot, nil
 }
 
@@ -393,6 +346,9 @@ func (snapshot preferenceSnapshot) restore() error {
 		if err != nil {
 			return fmt.Errorf("restore %s: %w", key, err)
 		}
+	}
+	if err := restoreConfigLibrary(snapshot.ConfigLibrary); err != nil {
+		return err
 	}
 	return nil
 }
@@ -433,7 +389,10 @@ func restorePendingPreferences(path string) error {
 	return nil
 }
 
-func applyGatewayPreferences(baseURL, apiKey string) error {
+func applyGatewayPreferences(baseURL, apiKey string, library configLibrarySnapshot) error {
+	if err := writeGatewayConfigLibrary(baseURL, apiKey, library); err != nil {
+		return err
+	}
 	if err := writePreference("inferenceGatewayBaseUrl", baseURL); err != nil {
 		return err
 	}
@@ -443,12 +402,170 @@ func applyGatewayPreferences(baseURL, apiKey string) error {
 	if err := writePreference("inferenceGatewayAuthScheme", "bearer"); err != nil {
 		return err
 	}
-	for _, key := range []string{"inferenceCredentialKind", "inferenceGatewayOidc", "inferenceModels"} {
+	for _, key := range []string{"inferenceCredentialKind", "inferenceGatewayOidc"} {
 		if err := deletePreference(key); err != nil {
 			return err
 		}
 	}
+	if err := writePreference("inferenceModels", claudex.InferenceModelsValue()); err != nil {
+		return err
+	}
 	return writePreference("inferenceProvider", "gateway")
+}
+
+func captureConfigLibrary() (configLibrarySnapshot, error) {
+	metaPath := filepath.Join(claudeConfigLibraryDir(), "_meta.json")
+	meta, err := readFileSnapshot(metaPath)
+	if err != nil {
+		return configLibrarySnapshot{}, fmt.Errorf("read Claude Desktop config library metadata: %w", err)
+	}
+	configPath, err := configLibraryConfigPath(metaPath, meta)
+	if err != nil {
+		return configLibrarySnapshot{}, err
+	}
+	config, err := readFileSnapshot(configPath)
+	if err != nil {
+		return configLibrarySnapshot{}, fmt.Errorf("read Claude Desktop config library: %w", err)
+	}
+	return configLibrarySnapshot{
+		MetaPath:   metaPath,
+		ConfigPath: configPath,
+		Meta:       meta,
+		Config:     config,
+	}, nil
+}
+
+func writeGatewayConfigLibrary(baseURL, apiKey string, library configLibrarySnapshot) error {
+	metaPath := library.MetaPath
+	if metaPath == "" {
+		metaPath = filepath.Join(claudeConfigLibraryDir(), "_meta.json")
+	}
+	configPath := library.ConfigPath
+	if configPath == "" {
+		var err error
+		configPath, err = configLibraryConfigPath(metaPath, library.Meta)
+		if err != nil {
+			return err
+		}
+	}
+
+	config := make(map[string]json.RawMessage)
+	if existing, errRead := os.ReadFile(configPath); errRead == nil {
+		if errUnmarshal := json.Unmarshal(existing, &config); errUnmarshal != nil {
+			return fmt.Errorf("decode Claude Desktop config library: %w", errUnmarshal)
+		}
+	} else if !errors.Is(errRead, os.ErrNotExist) {
+		return fmt.Errorf("read Claude Desktop config library: %w", errRead)
+	}
+	if config == nil {
+		config = make(map[string]json.RawMessage)
+	}
+	setConfigString(config, "inferenceProvider", "gateway")
+	setConfigString(config, "inferenceGatewayBaseUrl", baseURL)
+	setConfigString(config, "inferenceGatewayApiKey", apiKey)
+	setConfigString(config, "inferenceGatewayAuthScheme", "bearer")
+	setConfigString(config, "inferenceModels", claudex.InferenceModelsValue())
+	delete(config, "inferenceCredentialKind")
+	delete(config, "inferenceGatewayOidc")
+
+	contents, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode Claude Desktop config library: %w", err)
+	}
+	if err = writePrivateFile(configPath, contents); err != nil {
+		return fmt.Errorf("write Claude Desktop config library: %w", err)
+	}
+	if library.Meta.Present {
+		return nil
+	}
+
+	metaID := strings.TrimSuffix(filepath.Base(configPath), filepath.Ext(configPath))
+	metaContents, err := json.MarshalIndent(configLibraryMeta{
+		AppliedID: metaID,
+		Entries:   []configLibraryEntry{{ID: metaID, Name: "Default"}},
+	}, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode Claude Desktop config library metadata: %w", err)
+	}
+	if err = writePrivateFile(metaPath, metaContents); err != nil {
+		return fmt.Errorf("write Claude Desktop config library metadata: %w", err)
+	}
+	return nil
+}
+
+func restoreConfigLibrary(snapshot configLibrarySnapshot) error {
+	if snapshot.MetaPath == "" {
+		return nil
+	}
+	if err := restoreFileSnapshot(snapshot.ConfigPath, snapshot.Config); err != nil {
+		return fmt.Errorf("restore Claude Desktop config library: %w", err)
+	}
+	if err := restoreFileSnapshot(snapshot.MetaPath, snapshot.Meta); err != nil {
+		return fmt.Errorf("restore Claude Desktop config library metadata: %w", err)
+	}
+	return nil
+}
+
+func restoreFileSnapshot(path string, snapshot fileSnapshot) error {
+	if path == "" {
+		return nil
+	}
+	if snapshot.Present {
+		return writePrivateFile(path, snapshot.Contents)
+	}
+	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
+func readFileSnapshot(path string) (fileSnapshot, error) {
+	contents, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return fileSnapshot{}, nil
+	}
+	if err != nil {
+		return fileSnapshot{}, err
+	}
+	return fileSnapshot{Present: true, Contents: contents}, nil
+}
+
+func configLibraryConfigPath(metaPath string, metaSnapshot fileSnapshot) (string, error) {
+	if metaSnapshot.Present {
+		var meta configLibraryMeta
+		if err := json.Unmarshal(metaSnapshot.Contents, &meta); err != nil {
+			return "", fmt.Errorf("decode Claude Desktop config library metadata: %w", err)
+		}
+		if !configLibraryIDPattern.MatchString(meta.AppliedID) {
+			return "", errors.New("Claude Desktop config library metadata has an invalid applied configuration")
+		}
+		return filepath.Join(filepath.Dir(metaPath), meta.AppliedID+".json"), nil
+	}
+	id, err := newUUID()
+	if err != nil {
+		return "", fmt.Errorf("generate Claude Desktop config library ID: %w", err)
+	}
+	return filepath.Join(filepath.Dir(metaPath), id+".json"), nil
+}
+
+func claudeConfigLibraryDir() string {
+	return filepath.Join(expandHome("~"), "Library", "Application Support", "Claude-3p", "configLibrary")
+}
+
+func setConfigString(config map[string]json.RawMessage, key, value string) {
+	encoded, _ := json.Marshal(value)
+	config[key] = encoded
+}
+
+func newUUID() (string, error) {
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	bytes[6] = (bytes[6] & 0x0f) | 0x40
+	bytes[8] = (bytes[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
+		bytes[0:4], bytes[4:6], bytes[6:8], bytes[8:10], bytes[10:16]), nil
 }
 
 func readPreference(key string) (string, bool, error) {

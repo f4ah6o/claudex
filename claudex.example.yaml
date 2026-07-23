@@ -36,11 +36,11 @@ quota-exceeded:
   antigravity-credits: false
 
 # Claude Code may send Anthropic model IDs even when its base URL is redirected.
-# These aliases pin every built-in Claude Code tier to the current GPT-5.6 Codex
-# model. Direct gpt-5.6 and gpt-5.6-* model names are also accepted.
+# These aliases pin Claude Code tiers to the supported GPT-5.6 Codex models.
+# Direct gpt-5.6 and gpt-5.6-* model names are also accepted.
 oauth-model-alias:
   codex:
-    - name: "gpt-5.6-luna"
+    - name: "gpt-5.6-sol"
       alias: "claude-opus-4-8"
       fork: true
       force-mapping: true
@@ -60,7 +60,7 @@ oauth-model-alias:
       alias: "claude-sonnet-4-6"
       fork: true
       force-mapping: true
-    - name: "gpt-5.6-luna"
+    - name: "gpt-5.6-terra"
       alias: "claude-haiku-4-5"
       fork: true
       force-mapping: true

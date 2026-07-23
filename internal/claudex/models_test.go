@@ -24,13 +24,33 @@ func TestFixedModelsHandler(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if len(response.Data) != 1 {
-		t.Fatalf("model count = %d, want 1", len(response.Data))
+	if len(response.Data) != len(modelProfiles) {
+		t.Fatalf("model count = %d, want %d", len(response.Data), len(modelProfiles))
 	}
-	if response.Data[0].ID != FixedModelID {
-		t.Fatalf("model id = %q, want %q", response.Data[0].ID, FixedModelID)
+	for index, profile := range modelProfiles {
+		if response.Data[index].ID != profile.ID {
+			t.Fatalf("model %d id = %q, want %q", index, response.Data[index].ID, profile.ID)
+		}
+		if response.Data[index].DisplayName != profile.Label {
+			t.Fatalf("model %d display name = %q, want %q", index, response.Data[index].DisplayName, profile.Label)
+		}
 	}
-	if response.Data[0].DisplayName != "Codex GPT-5.6 Luna (xhigh)" {
-		t.Fatalf("display name = %q, want fixed Codex label", response.Data[0].DisplayName)
+}
+
+func TestInferenceModelsValue(t *testing.T) {
+	var models []struct {
+		Name  string `json:"name"`
+		Label string `json:"labelOverride"`
+	}
+	if err := json.Unmarshal([]byte(InferenceModelsValue()), &models); err != nil {
+		t.Fatalf("decode inference models: %v", err)
+	}
+	if len(models) != len(modelProfiles) {
+		t.Fatalf("inference model count = %d, want %d", len(models), len(modelProfiles))
+	}
+	for index, profile := range modelProfiles {
+		if models[index].Name != profile.ID || models[index].Label != profile.Label {
+			t.Fatalf("inference model %d = %#v, want %#v", index, models[index], profile)
+		}
 	}
 }

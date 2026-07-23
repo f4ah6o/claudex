@@ -67,38 +67,91 @@ func TestPolicyAllowsConfiguredClaudeAliases(t *testing.T) {
 			t.Fatalf("AllowsModel(%q) = false, want true", model)
 		}
 	}
-	if policy.AllowsModel("claude-opus-4-8") {
-		t.Fatal("AllowsModel(claude-opus-4-8) = true, want false")
+	for _, profile := range ModelProfiles() {
+		if !policy.AllowsModel(profile.ID) {
+			t.Fatalf("AllowsModel(%q) = false, want true", profile.ID)
+		}
+	}
+	if policy.AllowsModel("claude-opus-4-7") {
+		t.Fatal("AllowsModel(claude-opus-4-7) = true, want false")
 	}
 }
 
-func TestNormalizeAddsFixedModelAlias(t *testing.T) {
+func TestNormalizeAddsModelAliases(t *testing.T) {
 	t.Parallel()
 
 	cfg := &config.Config{}
 	Normalize(cfg)
 
-	if len(cfg.OAuthModelAlias["codex"]) != 1 {
-		t.Fatalf("fixed aliases = %#v, want one alias", cfg.OAuthModelAlias["codex"])
+	if len(cfg.OAuthModelAlias["codex"]) != len(ModelProfiles()) {
+		t.Fatalf("fixed aliases = %#v, want %d aliases", cfg.OAuthModelAlias["codex"], len(ModelProfiles()))
 	}
-	alias := cfg.OAuthModelAlias["codex"][0]
-	if alias.Name != FixedUpstreamModel || alias.Alias != FixedModelID || !alias.Fork || !alias.ForceMapping {
-		t.Fatalf("fixed alias = %#v, want %s -> %s with forced fork", alias, FixedModelID, FixedUpstreamModel)
+	for _, profile := range ModelProfiles() {
+		found := false
+		for _, alias := range cfg.OAuthModelAlias["codex"] {
+			if alias.Alias == profile.ID {
+				if alias.Name != profile.Upstream || !alias.Fork || !alias.ForceMapping {
+					t.Fatalf("fixed alias = %#v, want %s -> %s with forced fork", alias, profile.ID, profile.Upstream)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("missing fixed alias for %s", profile.ID)
+		}
 	}
 }
 
-func TestForceFixedEffort(t *testing.T) {
+func TestNormalizeOverridesSelectedModelAliases(t *testing.T) {
 	t.Parallel()
 
-	body, err := forceFixedEffort([]byte(`{"model":"claude-sonnet-4-6","thinking":{"type":"disabled"}}`))
+	cfg := &config.Config{
+		OAuthModelAlias: map[string][]config.OAuthModelAlias{
+			"codex": {{Name: "gpt-5.6-luna", Alias: "claude-opus-4-8"}},
+		},
+	}
+	Normalize(cfg)
+
+	for _, alias := range cfg.OAuthModelAlias["codex"] {
+		if alias.Alias == "claude-opus-4-8" {
+			if alias.Name != "gpt-5.6-sol" {
+				t.Fatalf("Opus alias target = %q, want gpt-5.6-sol", alias.Name)
+			}
+			return
+		}
+	}
+	t.Fatal("missing claude-opus-4-8 alias")
+}
+
+func TestApplyDefaultEffort(t *testing.T) {
+	t.Parallel()
+
+	body, err := applyDefaultEffort([]byte(`{"model":"gpt-5.6-luna"}`))
 	if err != nil {
-		t.Fatalf("forceFixedEffort() error = %v", err)
+		t.Fatalf("applyDefaultEffort() error = %v", err)
 	}
 	if got := gjson.GetBytes(body, "thinking.type").String(); got != "adaptive" {
 		t.Fatalf("thinking.type = %q, want adaptive", got)
 	}
-	if got := gjson.GetBytes(body, "output_config.effort").String(); got != FixedEffort {
-		t.Fatalf("output_config.effort = %q, want %q", got, FixedEffort)
+	if got := gjson.GetBytes(body, "output_config.effort").String(); got != DefaultEffort {
+		t.Fatalf("output_config.effort = %q, want %q", got, DefaultEffort)
+	}
+
+	body, err = applyDefaultEffort([]byte(`{"model":"gpt-5.6-luna","thinking":{"type":"adaptive"},"output_config":{"effort":"low"}}`))
+	if err != nil {
+		t.Fatalf("applyDefaultEffort() with selected effort error = %v", err)
+	}
+	if got := gjson.GetBytes(body, "output_config.effort").String(); got != "low" {
+		t.Fatalf("selected output_config.effort = %q, want low", got)
+	}
+
+	body, err = applyDefaultEffort([]byte(`{"model":"gpt-5.6-luna","thinking":{"type":"disabled"}}`))
+	if err != nil {
+		t.Fatalf("applyDefaultEffort() with disabled thinking error = %v", err)
+	}
+	if gjson.GetBytes(body, "output_config.effort").Exists() {
+		t.Fatal("disabled thinking unexpectedly received output_config.effort")
 	}
 }
 

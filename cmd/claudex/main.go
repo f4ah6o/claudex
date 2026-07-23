@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/claudex"
@@ -17,10 +16,7 @@ import (
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/logging"
 	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/translator"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
-	sdkapi "github.com/router-for-me/CLIProxyAPI/v7/sdk/api"
 	sdkAuth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 )
 
 var (
@@ -75,12 +71,13 @@ func runServe(args []string) error {
 		return fmt.Errorf("unexpected arguments: %s", strings.Join(flags.Args(), " "))
 	}
 
-	cfg, resolvedPath, err := loadConfig(*configPath)
+	cfg, resolvedPath, err := claudex.LoadServeConfig(*configPath)
 	if err != nil {
 		return err
 	}
-	if err = claudex.ValidateServe(cfg); err != nil {
-		return err
+	if claudex.WaitForServer(cfg, 1) {
+		fmt.Printf("Claudex server already running at %s; reusing it\n", claudex.ServerURL(cfg))
+		return nil
 	}
 	if err = logging.ConfigureLogOutput(cfg); err != nil {
 		return fmt.Errorf("configure logging: %w", err)
@@ -88,21 +85,14 @@ func runServe(args []string) error {
 	util.SetLogLevel(cfg)
 	sdkAuth.RegisterTokenStore(sdkAuth.NewFileTokenStore())
 
-	service, err := cliproxy.NewBuilder().
-		WithConfig(cfg).
-		WithConfigPath(resolvedPath).
-		WithServerOptions(
-			sdkapi.WithMiddleware(claudex.Middleware(cfg)),
-			sdkapi.WithAnthropicModelsHandler(claudex.FixedModelsHandler()),
-		).
-		Build()
+	service, err := claudex.NewService(cfg, resolvedPath)
 	if err != nil {
-		return fmt.Errorf("build service: %w", err)
+		return err
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	fmt.Printf("Claudex %s listening on http://%s:%d (model: %s -> %s, effort: %s)\n", Version, cfg.Host, cfg.Port, claudex.FixedModelID, claudex.FixedUpstreamModel, claudex.FixedEffort)
+	fmt.Printf("Claudex %s listening on http://%s:%d (models: Luna, Sol, Terra; default effort: %s)\n", Version, cfg.Host, cfg.Port, claudex.DefaultEffort)
 	if err = service.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("run service: %w", err)
 	}
@@ -123,7 +113,7 @@ func runLogin(args []string) error {
 		return fmt.Errorf("unexpected arguments: %s", strings.Join(flags.Args(), " "))
 	}
 
-	cfg, _, err := loadConfig(*configPath)
+	cfg, _, err := claudex.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -141,27 +131,6 @@ func runLogin(args []string) error {
 		internalcmd.DoCodexLogin(cfg, options)
 	}
 	return nil
-}
-
-func loadConfig(path string) (*config.Config, string, error) {
-	if strings.TrimSpace(path) == "" {
-		return nil, "", fmt.Errorf("configuration path is required")
-	}
-	resolvedPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, "", fmt.Errorf("resolve configuration path: %w", err)
-	}
-	cfg, err := config.LoadConfigOptional(resolvedPath, false)
-	if err != nil {
-		return nil, "", fmt.Errorf("load %s: %w", resolvedPath, err)
-	}
-	claudex.Normalize(cfg)
-	resolvedAuthDir, err := util.ResolveAuthDir(cfg.AuthDir)
-	if err != nil {
-		return nil, "", fmt.Errorf("resolve auth directory: %w", err)
-	}
-	cfg.AuthDir = resolvedAuthDir
-	return cfg, resolvedPath, nil
 }
 
 func defaultConfigPath() string {
