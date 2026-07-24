@@ -92,7 +92,7 @@ func runServe(args []string) error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	fmt.Printf("Claudex %s listening on http://%s:%d (models: Luna, Sol, Terra; default effort: %s)\n", Version, cfg.Host, cfg.Port, claudex.DefaultEffort)
+	fmt.Printf("Claudex %s listening on http://%s:%d (models: Sol, Terra, Luna; default effort: %s)\n", Version, cfg.Host, cfg.Port, claudex.DefaultEffort)
 	if err = service.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("run service: %w", err)
 	}
