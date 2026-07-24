@@ -135,14 +135,14 @@ $commandPath = if ($command.CommandType -eq "Application") { $command.Source } e
 # These variables are inherited only by this Claude Code process.
 $env:ANTHROPIC_BASE_URL = $baseUrl
 $env:ANTHROPIC_AUTH_TOKEN = $localKey
-$env:ANTHROPIC_MODEL = "gpt-5.6-luna"
-$env:ANTHROPIC_DEFAULT_OPUS_MODEL = "gpt-5.6-luna"
-$env:ANTHROPIC_DEFAULT_SONNET_MODEL = "gpt-5.6-luna"
+$env:ANTHROPIC_MODEL = "gpt-5.6-sol"
+$env:ANTHROPIC_DEFAULT_OPUS_MODEL = "gpt-5.6-sol"
+$env:ANTHROPIC_DEFAULT_SONNET_MODEL = "gpt-5.6-terra"
 $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "gpt-5.6-luna"
 $env:CLAUDE_CODE_EFFORT_LEVEL = "xhigh"
 $env:CLAUDE_CODE_ALWAYS_ENABLE_EFFORT = "1"
 
-& $commandPath --model gpt-5.6-luna --effort xhigh @args
+& $commandPath --model gpt-5.6-sol --effort xhigh @args
 $exitCode = $LASTEXITCODE
 if ($null -eq $exitCode) {
     $exitCode = 0
