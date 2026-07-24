@@ -37,7 +37,7 @@ Unless the client disables thinking or supplies its own effort setting, Claudex 
 | Path | Responsibility |
 | --- | --- |
 | `cmd/claudex` | Focused CLI: `login`, `serve`, and `version` |
-| `cmd/claudexdesktop` | macOS launcher for Claude Desktop |
+| `cmd/claudexdesktop` | macOS/Linux launcher for Claude Desktop |
 | `internal/claudex` | Configuration validation, route restriction, and GPT-5.6 model policy |
 | `claudex.example.yaml` | Minimal supported configuration |
 | remaining upstream packages | Shared Codex OAuth, Anthropic↔Responses translation, streaming, tools, and auth rotation |
@@ -107,6 +107,26 @@ Copy `dist/ClaudexDesktop.app` to `~/Applications` to launch it from Finder. On 
 `ClaudexDesktop` starts the loopback gateway, configures Claude Desktop's Third-Party Inference Gateway settings, and opens Claude Desktop. Its model catalog contains three entries: Codex GPT-5.6 Sol, Terra, and Luna. The launcher restores the previous Claude Desktop settings when the session ends. If it is interrupted, open `ClaudexDesktop` again to restore the pending settings backup before starting another session.
 
 The standard `Claude Desktop` app bundle is not modified. The provider preference is changed only while `ClaudexDesktop` owns the session; the gateway remains loopback-only and can stay running after Claude Desktop exits.
+
+## Claude Desktop on Linux
+
+Build the gateway, Desktop launcher, and their runtime resource directory together:
+
+```sh
+mkdir -p dist/claudexdesktop
+go build -o dist/claudexdesktop/claudex-server ./cmd/claudex
+go build -o dist/claudexdesktop/claudex-desktop ./cmd/claudexdesktop
+cp claudex.example.yaml dist/claudexdesktop/
+```
+
+With a compatible Linux Claude Desktop installation available as `claude-desktop`, start the launcher from the directory containing these files:
+
+```sh
+CLAUDEX_RESOURCE_DIR="$PWD/dist/claudexdesktop" \
+  ./dist/claudexdesktop/claudex-desktop
+```
+
+Linux mode starts or reuses the loopback gateway, passes the gateway settings through the dedicated child-process environment, and leaves the gateway running after Desktop exits. It does not edit the normal Desktop configuration. Set `CLAUDEX_DESKTOP_COMMAND` and `CLAUDEX_DESKTOP_PROCESS_NAME` when the installed command or process name differs from the defaults.
 
 ## Cross-platform setup
 
