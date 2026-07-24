@@ -40,8 +40,6 @@ Unless the client disables thinking or supplies its own effort setting, Claudex 
 | `claudex.example.yaml` | Minimal supported configuration |
 | remaining upstream packages | Shared Codex OAuth, Anthropic↔Responses translation, streaming, tools, and auth rotation |
 
-`cmd/server` is retained as upstream implementation material. It is not the supported Claudex executable.
-
 ## Quick start
 
 Clone the repository, build the gateway, and create a configuration:
