@@ -108,46 +108,6 @@ Copy `dist/ClaudexDesktop.app` to `~/Applications` to launch it from Finder. On 
 
 The standard `Claude Desktop` app bundle is not modified. The provider preference is changed only while `ClaudexDesktop` owns the session; the gateway remains loopback-only and can stay running after Claude Desktop exits.
 
-## Claude Desktop on Linux
-
-Build the gateway, Desktop launcher, and their runtime resource directory together:
-
-```sh
-mkdir -p dist/claudexdesktop
-go build -o dist/claudexdesktop/claudex-server ./cmd/claudex
-go build -o dist/claudexdesktop/claudex-desktop ./cmd/claudexdesktop
-cp claudex.example.yaml dist/claudexdesktop/
-```
-
-With a compatible Linux Claude Desktop installation available as `claude-desktop`, start the launcher from the directory containing these files:
-
-```sh
-CLAUDEX_RESOURCE_DIR="$PWD/dist/claudexdesktop" \
-  ./dist/claudexdesktop/claudex-desktop
-```
-
-Linux mode starts or reuses the loopback gateway, passes the gateway settings through the dedicated child-process environment, and leaves the gateway running after Desktop exits. It does not edit the normal Desktop configuration. Set `CLAUDEX_DESKTOP_COMMAND` and `CLAUDEX_DESKTOP_PROCESS_NAME` when the installed command or process name differs from the defaults.
-
-## Cross-platform setup
-
-The repository includes a `justfile` and native launchers for Windows, macOS, and Linux. Install `just` once with Cargo, then run the setup task from the repository root:
-
-```sh
-cargo install just --locked
-just setup
-```
-
-`just setup` creates the configuration, generates the local client key, builds the native server, installs the launcher, and adds the launcher directory to the user `PATH` where the shell profile can be detected. On Windows ARM64 it uses `$HOME\\.config\\claudex\\claudex.yaml` and `$HOME\\bin`; on macOS/Linux it uses `${XDG_CONFIG_HOME:-$HOME/.config}/claudex/claudex.yaml` and `${XDG_BIN_HOME:-$HOME/.local/bin}`. Open a new terminal after setup.
-
-Authenticate Codex with the browser OAuth flow and start Claude Code through the local gateway:
-
-```sh
-just login
-just run
-```
-
-Use `just serve` to run only the gateway, `just build` to rebuild the native launcher, and `just verify` to run targeted tests and rebuild.
-
 ## Security and usage boundaries
 
 Claudex is supported only as a local gateway for one user.
