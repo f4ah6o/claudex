@@ -8,6 +8,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func TestModelProfilesMatchClaudeTiers(t *testing.T) {
+	want := []ModelProfile{
+		{ID: "claude-opus-4-8", Upstream: "gpt-5.6-sol", Label: "Codex GPT-5.6 Sol"},
+		{ID: "claude-sonnet-4-6", Upstream: "gpt-5.6-terra", Label: "Codex GPT-5.6 Terra"},
+		{ID: "claude-haiku-4-5", Upstream: "gpt-5.6-luna", Label: "Codex GPT-5.6 Luna"},
+	}
+	got := ModelProfiles()
+	if len(got) != len(want) {
+		t.Fatalf("model profile count = %d, want %d", len(got), len(want))
+	}
+	for index := range want {
+		if got[index] != want[index] {
+			t.Fatalf("model profile %d = %#v, want %#v", index, got[index], want[index])
+		}
+	}
+}
+
 func TestFixedModelsHandler(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
