@@ -52,19 +52,19 @@ oauth-model-alias:
       alias: "claude-opus-4-6"
       fork: true
       force-mapping: true
-    - name: "gpt-5.6-luna"
+    - name: "gpt-5.6-terra"
       alias: "claude-sonnet-5"
       fork: true
       force-mapping: true
-    - name: "gpt-5.6-luna"
+    - name: "gpt-5.6-terra"
       alias: "claude-sonnet-4-6"
       fork: true
       force-mapping: true
-    - name: "gpt-5.6-terra"
+    - name: "gpt-5.6-luna"
       alias: "claude-haiku-4-5"
       fork: true
       force-mapping: true
-    - name: "gpt-5.6-terra"
+    - name: "gpt-5.6-luna"
       alias: "claude-haiku-4-5-20251001"
       fork: true
       force-mapping: true
