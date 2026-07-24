@@ -1,0 +1,70 @@
+# Claudex listens locally and exposes only the Anthropic Messages endpoints used
+# by Claude Code. Copy this file to claudex.yaml and replace the client API key.
+host: "127.0.0.1"
+port: 8317
+auth-dir: "~/.claudex"
+
+# Claude Code sends this value as ANTHROPIC_AUTH_TOKEN.
+api-keys:
+  - "replace-with-a-local-random-key"
+
+debug: false
+logging-to-file: false
+usage-statistics-enabled: false
+disable-image-generation: true
+request-retry: 2
+max-retry-interval: 15
+
+remote-management:
+  allow-remote: false
+  secret-key: ""
+  disable-control-panel: true
+  disable-auto-update-panel: true
+
+plugins:
+  enabled: false
+  dir: "plugins"
+
+routing:
+  strategy: "round-robin"
+  session-affinity: true
+  session-affinity-ttl: "2h"
+
+quota-exceeded:
+  switch-project: false
+  switch-preview-model: false
+  antigravity-credits: false
+
+# Claude Code may send Anthropic model IDs even when its base URL is redirected.
+# These aliases pin Claude Code tiers to the supported GPT-5.6 Codex models.
+# Direct gpt-5.6 and gpt-5.6-* model names are also accepted.
+oauth-model-alias:
+  codex:
+    - name: "gpt-5.6-sol"
+      alias: "claude-opus-4-8"
+      fork: true
+      force-mapping: true
+    - name: "gpt-5.6-sol"
+      alias: "claude-opus-4-7"
+      fork: true
+      force-mapping: true
+    - name: "gpt-5.6-sol"
+      alias: "claude-opus-4-6"
+      fork: true
+      force-mapping: true
+    - name: "gpt-5.6-terra"
+      alias: "claude-sonnet-5"
+      fork: true
+      force-mapping: true
+    - name: "gpt-5.6-terra"
+      alias: "claude-sonnet-4-6"
+      fork: true
+      force-mapping: true
+    - name: "gpt-5.6-luna"
+      alias: "claude-haiku-4-5"
+      fork: true
+      force-mapping: true
+    - name: "gpt-5.6-luna"
+      alias: "claude-haiku-4-5-20251001"
+      fork: true
+      force-mapping: true

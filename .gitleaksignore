@@ -1,0 +1,5 @@
+# Known public OAuth client identifiers retained by the current release tree.
+# Keep every finding as an exact fingerprint so new or changed findings continue to fail CI.
+4281a18a618632cb362b2a61a1a5bea86176d59c:internal/api/handlers/management/api_tools.go:generic-api-key:24
+4281a18a618632cb362b2a61a1a5bea86176d59c:internal/auth/antigravity/constants.go:generic-api-key:7
+4281a18a618632cb362b2a61a1a5bea86176d59c:internal/runtime/executor/antigravity_executor.go:generic-api-key:53
