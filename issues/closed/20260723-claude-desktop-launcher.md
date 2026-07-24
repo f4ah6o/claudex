@@ -20,7 +20,7 @@ macOS向けの`ClaudexDesktop.app`を追加した。アプリは同梱のClaudex
 - provider設定とconfig libraryを退避し、正常終了時または次回起動時に復元する
 - 標準のClaude Desktop app bundleは変更しない
 - ゲートウェイはループバック限定とする
-- `/v1/models`にCodex GPT-5.6 Sol、Luna、Terraの3モデルを公開する
+- `/v1/models`にCodex GPT-5.6 Sol、Terra、Lunaの3モデルを公開する
 - `/v1/messages`と`/v1/messages/count_tokens`以外の汎用ルートを公開しない
 - APIキー、OAuthトークン、設定バックアップをユーザー専用権限で保存する
 
@@ -29,8 +29,8 @@ macOS向けの`ClaudexDesktop.app`を追加した。アプリは同梱のClaudex
 | Claudeプロファイル | Codexモデル |
 | --- | --- |
 | Opus | `gpt-5.6-sol` |
-| Sonnet | `gpt-5.6-luna` |
-| Haiku | `gpt-5.6-terra` |
+| Sonnet | `gpt-5.6-terra` |
+| Haiku | `gpt-5.6-luna` |
 
 既定のeffortは`xhigh`。クライアントがthinkingを無効化した場合、または独自のeffortを指定した場合は上書きしない。
 
