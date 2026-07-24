@@ -1,5 +1,6 @@
 # Known public OAuth client identifiers inherited from router-for-me/CLIProxyAPI history.
-# Keep these as exact fingerprints so new or changed findings continue to fail CI.
+# The retained history contains duplicate commit identities for these constants.
+# Keep every finding as an exact fingerprint so new or changed findings continue to fail CI.
 14dfcb2f80d0df3497c1c875016d8d3ea22d35d8:internal/runtime/executor/antigravity_executor.go:generic-api-key:48
 2d6504837250861974e504874225ea9284a81015:internal/auth/gemini/gemini_auth.go:generic-api-key:34
 d286ba766ebfc1785f191899c55e8b20a1871d44:internal/auth/antigravity/constants.go:generic-api-key:7
@@ -26,3 +27,29 @@ b695c3d4b14b8b33c83805cf8873d8574a08e840:internal/api/handlers/management/auth_f
 7c0a0c85ca367b21639e3da122770de6d7683125:internal/auth/qwen/qwen_auth.go:generic-api-key:25
 0d09643d06256331e43c7beee225d0265eb79911:internal/auth/gemini/gemini_auth.go:generic-api-key:30
 d39ba1d1dad0406dd2ba1809b392007cfcdca0ce:internal/auth/auth.go:generic-api-key:23
+30e94b6792d697390a66d77546cd185161db97d9:internal/runtime/executor/antigravity_executor.go:generic-api-key:48
+8c0eaa1f7194e7536c24ec2562af9994bcf6bafd:internal/auth/gemini/gemini_auth.go:generic-api-key:34
+c65407ab9f58e255484e95e15d214af8eb582805:internal/auth/antigravity/constants.go:generic-api-key:7
+a1da6ff5acc2421f6b2c507c30a181204b37a2e9:internal/auth/gemini/gemini_auth.go:generic-api-key:33
+b01619b44116784d5d61f1ca3a64aebff533774b:internal/api/handlers/management/api_tools.go:generic-api-key:38
+ade71947927c53216e0ce082b7765415afa11a11:internal/api/handlers/management/api_tools.go:generic-api-key:27
+83b90e106f4424c099f717b69722e2e7d3e68728:internal/runtime/executor/antigravity_executor.go:generic-api-key:43
+68a27772b31f55f3ee90e1d3d52f65cbecc37683:internal/runtime/executor/antigravity_executor.go:generic-api-key:41
+27c9c5c4da04de57e597a2fa9f46f06e0760b0c4:internal/runtime/executor/gemini_cli_executor.go:generic-api-key:36
+fc9f6c974abe949f5ec9ba14d493d5d4465fa3e9:internal/runtime/executor/antigravity_executor.go:generic-api-key:40
+f25f419e5aa5503f63d612d1a0d0a9dbee8504fe:internal/runtime/executor/antigravity_executor.go:generic-api-key:37
+257621c5ed15c53ac17edef055c16672cbf96ea3:internal/runtime/executor/antigravity_executor.go:generic-api-key:36
+7757210af64d6731d2eb9404be1517de858748c1:internal/api/handlers/management/auth_files.go:generic-api-key:1299
+2d84d2fb6ade34f852eabdb299ac72555cd2e789:sdk/auth/antigravity.go:generic-api-key:23
+2d84d2fb6ade34f852eabdb299ac72555cd2e789:internal/runtime/executor/antigravity_executor.go:generic-api-key:34
+b839e351c47b35b7ee835ec50c404f6783e7500c:internal/auth/iflow/iflow_auth.go:generic-api-key:28
+f5dc380b636c4fb9dd50a37cb54b52fb6693d3df:internal/api/handlers/management/auth_files.go:generic-api-key:535
+f5dc380b636c4fb9dd50a37cb54b52fb6693d3df:internal/auth/gemini/gemini_auth.go:generic-api-key:32
+f5dc380b636c4fb9dd50a37cb54b52fb6693d3df:internal/auth/qwen/qwen_auth.go:generic-api-key:27
+f5dc380b636c4fb9dd50a37cb54b52fb6693d3df:internal/runtime/executor/gemini_cli_executor.go:generic-api-key:31
+4999fce7f4341ba740bc71395ee6af0c4d1905d5:internal/runtime/executor/gemini_cli_executor.go:generic-api-key:26
+545dff8b640ac1208f340ff06fd8bebf6bea2a13:internal/api/handlers/management/auth_files.go:generic-api-key:286
+8c555c4e69efe8fb479c748a8f1c83979d1c830f:internal/auth/qwen/qwen_auth.go:generic-api-key:27
+aa2f37d54dfa33be2f9a9d8b181e853d58b5582a:internal/auth/qwen/qwen_auth.go:generic-api-key:25
+de7b8501cc182e43d0aa0d47fded42bdaf3298f1:internal/auth/gemini/gemini_auth.go:generic-api-key:30
+827bd6e356300b9525baa028f4251a933274ceb4:internal/auth/auth.go:generic-api-key:23
