@@ -22,6 +22,8 @@
 
 ### Removed
 
+- Removed unsupported upstream server/TUI/storage commands, model catalog utilities, plugin and SDK examples, and standalone SDK wrappers so the repository contains only the Claudex-supported surface.
+
 ### Security
 
 - Updated the Go toolchain requirement and vulnerable Go dependencies; `govulncheck` reports no reachable vulnerabilities.
@@ -32,3 +34,4 @@
 - On macOS, build `ClaudexDesktop.app`, run its bundled Codex login command once, and launch the app from Finder for the Desktop Gateway workflow.
 - Builds require Go 1.26.5 or newer.
 - Install from a repository clone with `just setup` or by building `./cmd/claudex`; the retained upstream module path does not support `go install github.com/f4ah6o/claudex/...`.
+- Users of the removed upstream server, TUI, remote storage, model utility, or plugin example commands should continue using the upstream `router-for-me/CLIProxyAPI` repository; they are no longer part of Claudex.
