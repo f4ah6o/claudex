@@ -65,13 +65,13 @@ func TestExampleConfigMapsClaudeTiers(t *testing.T) {
 	}
 
 	want := map[string]string{
-		"claude-opus-4-8":            "gpt-5.6-sol",
-		"claude-opus-4-7":            "gpt-5.6-sol",
-		"claude-opus-4-6":            "gpt-5.6-sol",
-		"claude-sonnet-5":             "gpt-5.6-terra",
-		"claude-sonnet-4-6":           "gpt-5.6-terra",
-		"claude-haiku-4-5":            "gpt-5.6-luna",
-		"claude-haiku-4-5-20251001":   "gpt-5.6-luna",
+		"claude-opus-4-8":          "gpt-5.6-sol",
+		"claude-opus-4-7":          "gpt-5.6-sol",
+		"claude-opus-4-6":          "gpt-5.6-sol",
+		"claude-sonnet-5":           "gpt-5.6-terra",
+		"claude-sonnet-4-6":         "gpt-5.6-terra",
+		"claude-haiku-4-5":          "gpt-5.6-luna",
+		"claude-haiku-4-5-20251001": "gpt-5.6-luna",
 	}
 	got := make(map[string]string)
 	for _, alias := range cfg.OAuthModelAlias["codex"] {
