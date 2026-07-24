@@ -2,9 +2,11 @@
 
 [日本語](README.ja.md)
 
-Claudex is a focused local gateway that exposes OpenAI Codex models through the Anthropic Messages API used by Claude Code.
+Claudex is a focused local gateway that exposes OpenAI Codex models through 
+the Anthropic Messages API used by Claude Code.
 
-Claudex implements the workflow named “claudex” by [Thibault Sottiaux](https://x.com/thsottiaux/status/2076119366647894371). It is an independent open-source project and is not an official OpenAI or Anthropic product. Claude, Claude Code, Codex, and OpenAI are names and trademarks of their respective owners.
+It is an independent open-source project and is not an official OpenAI or Anthropic product. 
+Claude, Claude Code, Codex, and OpenAI are names and trademarks of their respective owners.
 
 The supported product surface is intentionally small:
 
