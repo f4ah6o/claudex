@@ -2,9 +2,11 @@
 
 [English](README.md)
 
-Claudex は、Claude Code が利用する Anthropic Messages API を通じて、OpenAI Codex のモデルをローカルで利用するための小さなゲートウェイです。
+Claudex は、Claude Code が利用する Anthropic Messages API を通じて、
+OpenAI Codex のモデルをローカルで利用するための小さなゲートウェイです。
 
-Claudex は、[Thibault Sottiaux](https://x.com/thsottiaux/status/2076119366647894371) が「claudex」と名付けたワークフローを実装する独立したオープンソースプロジェクトです。OpenAI または Anthropic の公式製品・提携製品ではありません。Claude、Claude Code、Codex、OpenAI などの名称および商標は各権利者に帰属します。
+OpenAI または Anthropic の公式製品・提携製品ではありません。
+Claude、Claude Code、Codex、OpenAI などの名称および商標は各権利者に帰属します。
 
 対応範囲を意図的に限定しています。
 
