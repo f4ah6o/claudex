@@ -58,6 +58,32 @@ func TestValidateRejectsAliasOutsideGPT56(t *testing.T) {
 	}
 }
 
+func TestExampleConfigMapsClaudeTiers(t *testing.T) {
+	cfg, err := config.LoadConfigOptional("../../claudex.example.yaml", false)
+	if err != nil {
+		t.Fatalf("load example configuration: %v", err)
+	}
+
+	want := map[string]string{
+		"claude-opus-4-8":            "gpt-5.6-sol",
+		"claude-opus-4-7":            "gpt-5.6-sol",
+		"claude-opus-4-6":            "gpt-5.6-sol",
+		"claude-sonnet-5":             "gpt-5.6-terra",
+		"claude-sonnet-4-6":           "gpt-5.6-terra",
+		"claude-haiku-4-5":            "gpt-5.6-luna",
+		"claude-haiku-4-5-20251001":   "gpt-5.6-luna",
+	}
+	got := make(map[string]string)
+	for _, alias := range cfg.OAuthModelAlias["codex"] {
+		got[alias.Alias] = alias.Name
+	}
+	for alias, model := range want {
+		if got[alias] != model {
+			t.Fatalf("example alias %q = %q, want %q", alias, got[alias], model)
+		}
+	}
+}
+
 func TestPolicyAllowsConfiguredClaudeAliases(t *testing.T) {
 	t.Parallel()
 
@@ -220,7 +246,7 @@ func focusedConfig() *config.Config {
 		OAuthModelAlias: map[string][]config.OAuthModelAlias{
 			"codex": {
 				{Name: "gpt-5.6-sol", Alias: "claude-opus-4-6", Fork: true, ForceMapping: true},
-				{Name: "gpt-5.6-sol", Alias: "claude-sonnet-4-6", Fork: true, ForceMapping: true},
+				{Name: "gpt-5.6-terra", Alias: "claude-sonnet-4-6", Fork: true, ForceMapping: true},
 			},
 		},
 	}
