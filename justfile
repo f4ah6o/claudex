@@ -18,6 +18,9 @@ serve: setup
 run: setup
     @{{ if os() == "windows" { "pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File scripts\\claudex-tasks.ps1 run" } else { "sh scripts/claudex-tasks.sh run" } }}
 
+desktop: setup
+    @{{ if os() == "linux" { "sh scripts/claudex-tasks.sh desktop" } else { "printf '%s\\n' 'Use ClaudexDesktop.app on macOS; the native desktop task is Linux-only.' >&2; exit 2" } }}
+
 verify:
     @{{ if os() == "windows" { "pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File scripts\\claudex-tasks.ps1 verify" } else { "sh scripts/claudex-tasks.sh verify" } }}
 
