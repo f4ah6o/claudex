@@ -36,6 +36,7 @@ Unless the client disables thinking or supplies its own effort setting, Claudex 
 | --- | --- |
 | `cmd/claudex` | Focused CLI: `login`, `serve`, and `version` |
 | `cmd/claudexdesktop` | macOS launcher for Claude Desktop |
+| `cmd/claudexdesktoplinux` | Linux launcher for Claude Desktop |
 | `internal/claudex` | Configuration validation, route restriction, and GPT-5.6 model policy |
 | `claudex.example.yaml` | Minimal supported configuration |
 | remaining upstream packages | Shared Codex OAuth, Anthropic↔Responses translation, streaming, tools, and auth rotation |
@@ -106,6 +107,16 @@ Copy `dist/ClaudexDesktop.app` to `~/Applications` to launch it from Finder. On 
 
 The standard `Claude Desktop` app bundle is not modified. The provider preference is changed only while `ClaudexDesktop` owns the session; the gateway remains loopback-only and can stay running after Claude Desktop exits.
 
+## Claude Desktop on Linux
+
+Install [`f4ah6o/claude-desktop-linux`](https://github.com/f4ah6o/claude-desktop-linux), complete `just setup` and `just login`, then launch the Desktop app through Claudex:
+
+```sh
+just desktop
+```
+
+The Linux launcher stops an existing Desktop process, backs up the normal and third-party configuration, writes an XDG-based `Claude-3p` gateway profile, starts or reuses the loopback server, and restores the previous Desktop configuration after the app exits. See [`docs/linux-desktop.md`](docs/linux-desktop.md) for paths, overrides, and logs.
+
 ## Cross-platform setup
 
 The repository includes a `justfile` and native launchers for Windows, macOS, and Linux. Install `just` once with Cargo, then run the setup task from the repository root:
@@ -166,7 +177,7 @@ docker run --rm --network host \
 ## Development
 
 ```bash
-go test ./internal/claudex ./cmd/claudex
+go test ./internal/claudex ./cmd/claudex ./cmd/claudexdesktoplinux
 go build -o claudex ./cmd/claudex
 govulncheck ./...
 gitleaks detect --log-opts="--all"
@@ -174,7 +185,7 @@ gitleaks detect --log-opts="--all"
 
 On macOS, verify the Desktop bundle with `./script/build_and_run.sh --build-only` or `--verify`.
 
-Keep upstream changes isolated from the focused product layer. Normal synchronization should preserve `cmd/claudex`, `cmd/claudexdesktop`, `internal/claudex`, `claudex.example.yaml`, and the Claudex Docker target.
+Keep upstream changes isolated from the focused product layer. Normal synchronization should preserve `cmd/claudex`, `cmd/claudexdesktop`, `cmd/claudexdesktoplinux`, `internal/claudex`, `claudex.example.yaml`, and the Claudex Docker target.
 
 ## Acknowledgements
 
