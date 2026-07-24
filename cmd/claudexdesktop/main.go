@@ -82,9 +82,16 @@ func main() {
 }
 
 func run() error {
-	if runtime.GOOS != "darwin" {
-		return fmt.Errorf("ClaudexDesktop requires macOS")
+	if runtime.GOOS == "linux" {
+		return runLinux()
 	}
+	if runtime.GOOS != "darwin" {
+		return fmt.Errorf("ClaudexDesktop requires macOS or Linux")
+	}
+	return runDarwin()
+}
+
+func runDarwin() error {
 
 	configPath := resolveConfigPath()
 	if absolutePath, errAbs := filepath.Abs(configPath); errAbs == nil {
@@ -638,6 +645,13 @@ func waitForProcessExit() {
 }
 
 func showMessage(title, message string, informational bool) error {
+	if runtime.GOOS == "linux" {
+		return showMessageLinux(title, message, informational)
+	}
+	return showMessageDarwin(title, message, informational)
+}
+
+func showMessageDarwin(title, message string, informational bool) error {
 	message = appleScriptString(message)
 	title = appleScriptString(title)
 	script := fmt.Sprintf("display dialog \"%s\" with title \"%s\" buttons {\"OK\"} default button \"OK\"", message, title)

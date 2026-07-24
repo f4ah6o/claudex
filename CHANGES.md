@@ -5,6 +5,7 @@
 ### Added
 
 - Added the macOS `ClaudexDesktop.app` launcher for Claude Desktop, including loopback Gateway setup, Sol/Terra/Luna model discovery, and standard-provider restoration. (`issues/closed/20260723-claude-desktop-launcher.md`)
+- Added a generic Linux `ClaudexDesktop` launcher mode with environment-based gateway handoff and separate Desktop process lifecycle management. (`issues/open/20260724-linux-claudexdesktop.md`)
 - Added full-history secret scanning and reachable Go vulnerability checks for public repository changes. (`issues/closed/20260724-public-release-readiness.md`)
 - Added a non-launching `--build-only` mode for reproducible macOS Desktop bundle checks.
 
