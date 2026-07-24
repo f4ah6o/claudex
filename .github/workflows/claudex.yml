@@ -4,13 +4,17 @@ on:
   pull_request:
     paths:
       - "cmd/claudex/**"
+      - "cmd/claudexdesktop/**"
       - "internal/claudex/**"
+      - "script/build_and_run.sh"
       - "claudex.example.yaml"
       - "claudex.ps1"
       - "claudex.cmd"
       - "Dockerfile"
+      - ".gitignore"
       - "README.md"
       - "README.ja.md"
+      - "CHANGES.md"
       - "go.mod"
       - "go.sum"
       - ".github/workflows/claudex.yml"
@@ -19,13 +23,17 @@ on:
       - main
     paths:
       - "cmd/claudex/**"
+      - "cmd/claudexdesktop/**"
       - "internal/claudex/**"
+      - "script/build_and_run.sh"
       - "claudex.example.yaml"
       - "claudex.ps1"
       - "claudex.cmd"
       - "Dockerfile"
+      - ".gitignore"
       - "README.md"
       - "README.ja.md"
+      - "CHANGES.md"
       - "go.mod"
       - "go.sum"
       - ".github/workflows/claudex.yml"
@@ -43,11 +51,11 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Check formatting
-        run: test -z "$(gofmt -l cmd/claudex internal/claudex)"
+        run: test -z "$(gofmt -l cmd/claudex cmd/claudexdesktop internal/claudex)"
       - name: Test focused packages
         run: |
           set -o pipefail
-          go test ./internal/claudex ./cmd/claudex 2>&1 | tee claudex-test.log
+          go test ./internal/claudex ./cmd/claudex ./cmd/claudexdesktop 2>&1 | tee claudex-test.log
       - name: Upload test failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -55,5 +63,22 @@ jobs:
           name: claudex-test-log
           path: claudex-test.log
           if-no-files-found: ignore
-      - name: Build Claudex
-        run: go build ./cmd/claudex
+      - name: Build Claudex commands
+        run: go build ./cmd/claudex ./cmd/claudexdesktop
+
+  macos-desktop-bundle:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build ClaudexDesktop bundle
+        run: ./script/build_and_run.sh --build-only
+      - name: Verify bundle contents
+        run: |
+          test -x dist/ClaudexDesktop.app/Contents/MacOS/ClaudexDesktop
+          test -x dist/ClaudexDesktop.app/Contents/Resources/claudex-server
+          test -f dist/ClaudexDesktop.app/Contents/Resources/claudex.example.yaml
+          /usr/bin/plutil -lint dist/ClaudexDesktop.app/Contents/Info.plist
