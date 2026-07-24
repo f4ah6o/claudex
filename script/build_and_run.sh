@@ -21,7 +21,18 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
     exit 1
 fi
 
-pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+case "$MODE" in
+run|--debug|debug|--logs|logs|--telemetry|telemetry|--verify|verify|--build-only|build-only|build)
+    ;;
+*)
+    echo "usage: $0 [run|--build-only|--debug|--logs|--telemetry|--verify]" >&2
+    exit 2
+    ;;
+esac
+
+if [[ "$MODE" != "--build-only" && "$MODE" != "build-only" && "$MODE" != "build" ]]; then
+    pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+fi
 
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_MACOS" "$APP_RESOURCES"
@@ -70,6 +81,9 @@ case "$MODE" in
 run)
     open_app
     ;;
+--build-only|build-only|build)
+    echo "$APP_BUNDLE"
+    ;;
 --debug|debug)
     lldb -- "$APP_BINARY"
     ;;
@@ -91,9 +105,5 @@ run)
     done
     echo "$APP_NAME did not start" >&2
     exit 1
-    ;;
-*)
-    echo "usage: $0 [run|--debug|--logs|--telemetry|--verify]" >&2
-    exit 2
     ;;
 esac
