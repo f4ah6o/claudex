@@ -4,10 +4,10 @@ set -eu
 
 task=${1:-}
 case "$task" in
-    setup|build|login|serve|run|verify|version)
+    setup|build|login|serve|run|desktop|verify|version)
         ;;
     *)
-        printf '%s\n' 'usage: claudex-tasks.sh {setup|build|login|serve|run|verify|version}' >&2
+        printf '%s\n' 'usage: claudex-tasks.sh {setup|build|login|serve|run|desktop|verify|version}' >&2
         exit 2
         ;;
 esac
@@ -19,6 +19,7 @@ config_path=$config_dir/claudex.yaml
 install_dir=${XDG_BIN_HOME:-"$HOME/.local/bin"}
 server_path=$install_dir/claudex-server
 launcher_path=$install_dir/claudex
+desktop_path=$install_dir/claudex-desktop-linux
 template_path=$repo_root/claudex.example.yaml
 
 new_local_api_key() {
@@ -50,6 +51,9 @@ ensure_install() {
     native_goos=$(go env GOOS)
     native_goarch=$(go env GOARCH)
     CGO_ENABLED=0 GOOS="$native_goos" GOARCH="$native_goarch" go build -o "$server_path" ./cmd/claudex
+    if [ "$native_goos" = linux ]; then
+        CGO_ENABLED=0 GOOS="$native_goos" GOARCH="$native_goarch" go build -o "$desktop_path" ./cmd/claudexdesktoplinux
+    fi
     cp "$repo_root/scripts/claudex.sh" "$launcher_path"
     chmod 755 "$launcher_path"
     printf 'Installed Claudex launcher and server in: %s\n' "$install_dir"
@@ -116,8 +120,17 @@ case "$task" in
         [ -x "$launcher_path" ] || ensure_install
         exec "$launcher_path"
         ;;
+    desktop)
+        if [ "$(go env GOOS)" != linux ]; then
+            printf '%s\n' 'The native Desktop launcher is available on Linux only. Use ClaudexDesktop.app on macOS.' >&2
+            exit 2
+        fi
+        ensure_config
+        [ -x "$desktop_path" ] || ensure_install
+        exec "$desktop_path"
+        ;;
     verify)
-        go test ./internal/claudex ./cmd/claudex
+        go test ./internal/claudex ./cmd/claudex ./cmd/claudexdesktoplinux
         ensure_install
         printf '%s\n' 'Claudex verification completed.'
         ;;
