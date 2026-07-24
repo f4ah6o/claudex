@@ -34,8 +34,8 @@ baseline適用後、全Git履歴のsecret scanは成功し、未対応のfinding
 
 ### READMEと実装の整合
 
-- README.mdとREADME.ja.mdをSol/Luna/Terraの3モデル構成へ更新した
-- Opusを`gpt-5.6-sol`、Sonnetを`gpt-5.6-luna`、Haikuを`gpt-5.6-terra`へ割り当てることを記載した
+- README.mdとREADME.ja.mdをSol/Terra/Lunaの3モデル構成へ更新した
+- Opusを`gpt-5.6-sol`、Sonnetを`gpt-5.6-terra`、Haikuを`gpt-5.6-luna`へ割り当てることを記載した
 - Claude Desktopのモデル一覧が3件であることを記載した
 - `issues/open/20260723-claude-desktop-launcher.md`を実装済み記録として`issues/closed/`へ移した
 - `CHANGES.md`の1モデル固定という古い記述を更新した
@@ -70,7 +70,7 @@ upstream同期を維持するため、module pathは`github.com/router-for-me/CL
 
 - [x] 実キーを含む`claudex.yaml`および設定バックアップが通常操作でGit管理対象にならない
 - [x] 全Git履歴のsecret scan結果に未対応の秘密情報がない
-- [x] README.mdとREADME.ja.mdがSol/Luna/Terraの現在の実装と一致する
+- [x] README.mdとREADME.ja.mdがSol/Terra/Lunaの現在の実装と一致する
 - [x] 名称の由来と、OpenAI・Anthropicの非公式プロジェクトであることが明記されている
 - [x] ローカル・単一ユーザー用途というセキュリティおよび利用境界が明確である
 - [x] module pathと公式な導入方法が矛盾していない
