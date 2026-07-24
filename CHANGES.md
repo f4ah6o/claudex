@@ -4,18 +4,19 @@
 
 ### Added
 
-- Added the macOS `ClaudexDesktop.app` launcher for Claude Desktop, including loopback Gateway setup, Sol/Luna/Terra model discovery, and standard-provider restoration. (`issues/closed/20260723-claude-desktop-launcher.md`)
+- Added the macOS `ClaudexDesktop.app` launcher for Claude Desktop, including loopback Gateway setup, Sol/Terra/Luna model discovery, and standard-provider restoration. (`issues/closed/20260723-claude-desktop-launcher.md`)
 - Added full-history secret scanning and reachable Go vulnerability checks for public repository changes. (`issues/closed/20260724-public-release-readiness.md`)
 - Added a non-launching `--build-only` mode for reproducible macOS Desktop bundle checks.
 
 ### Changed
 
-- Exposed an authenticated Anthropic-format `/v1/models` catalog containing the three Codex-backed Sol, Luna, and Terra profiles while preserving the focused proxy route policy.
+- Exposed an authenticated Anthropic-format `/v1/models` catalog containing the three Codex-backed profiles: Opus/Sol, Sonnet/Terra, and Haiku/Luna.
 - Documented Claudex as an independent local single-user project, including the name origin, credential boundaries, supported installation method, and retained upstream Go module path.
 
 ### Fixed
 
 - Ignored repository-local Claudex configuration and Desktop preference backup files so generated credentials are not committed during normal use.
+- Aligned legacy, versioned, Desktop, and launcher model mappings with Opus/Sol, Sonnet/Terra, and Haiku/Luna.
 
 ### Deprecated
 
