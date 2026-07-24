@@ -23,8 +23,8 @@ The example configuration maps Claude-compatible IDs to three Codex model profil
 | Claude profile | Codex model | Desktop label |
 | --- | --- | --- |
 | Opus | `gpt-5.6-sol` | Codex GPT-5.6 Sol |
-| Sonnet | `gpt-5.6-luna` | Codex GPT-5.6 Luna |
-| Haiku | `gpt-5.6-terra` | Codex GPT-5.6 Terra |
+| Sonnet | `gpt-5.6-terra` | Codex GPT-5.6 Terra |
+| Haiku | `gpt-5.6-luna` | Codex GPT-5.6 Luna |
 
 Claude Code may send versioned or built-in Claude model IDs. `claudex.example.yaml` contains the supported aliases for those IDs. Direct requests to `gpt-5.6` and any `gpt-5.6-*` model are also accepted. Models outside that family are rejected before provider routing.
 
@@ -74,10 +74,10 @@ Point Claude Code at the local gateway and select a supported model and effort l
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8317"
 export ANTHROPIC_AUTH_TOKEN="the-local-key-from-claudex.yaml"
 
-claude --model gpt-5.6-luna --effort xhigh
+claude --model opus --effort xhigh
 ```
 
-Claude-compatible model IDs are routed according to the Sol, Luna, and Terra mapping above. A direct `gpt-5.6-*` model name bypasses the Claude-profile alias while remaining inside the allowed model family.
+Claude-compatible model IDs are routed according to the Sol, Terra, and Luna mapping above. A direct `gpt-5.6-*` model name bypasses the Claude-profile alias while remaining inside the allowed model family.
 
 To keep the normal Anthropic Claude command unchanged, remove the local gateway variables before using it:
 
@@ -86,7 +86,7 @@ unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN
 claude --model opus
 ```
 
-The included native launchers automate this separation. `claude` remains the normal Anthropic command, while `claudex` starts or reuses the local gateway and passes the Claudex environment only to its child Claude Code process. The `./claudex` binary built from this repository is the gateway server itself.
+The included native launchers automate this separation. `claude` remains the normal Anthropic command, while `claudex` starts or reuses the local gateway and launches Claude Code with the Opus/Sol profile by default. The launcher also defines Sonnet/Terra and Haiku/Luna defaults for Claude Code's tier switching. The `./claudex` binary built from this repository is the gateway server itself.
 
 ## Claude Desktop on macOS
 
@@ -104,7 +104,7 @@ Build and verify that the application starts:
 
 Copy `dist/ClaudexDesktop.app` to `~/Applications` to launch it from Finder. On first launch, the app creates `~/.config/claudex/claudex.yaml` and shows the bundled Codex login command. Run that command once, then launch `ClaudexDesktop` again.
 
-`ClaudexDesktop` starts the loopback gateway, configures Claude Desktop's Third-Party Inference Gateway settings, and opens Claude Desktop. Its model catalog contains three entries: Codex GPT-5.6 Sol, Luna, and Terra. The launcher restores the previous Claude Desktop settings when the session ends. If it is interrupted, open `ClaudexDesktop` again to restore the pending settings backup before starting another session.
+`ClaudexDesktop` starts the loopback gateway, configures Claude Desktop's Third-Party Inference Gateway settings, and opens Claude Desktop. Its model catalog contains three entries: Codex GPT-5.6 Sol, Terra, and Luna. The launcher restores the previous Claude Desktop settings when the session ends. If it is interrupted, open `ClaudexDesktop` again to restore the pending settings backup before starting another session.
 
 The standard `Claude Desktop` app bundle is not modified. The provider preference is changed only while `ClaudexDesktop` owns the session; the gateway remains loopback-only and can stay running after Claude Desktop exits.
 
