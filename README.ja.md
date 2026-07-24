@@ -108,46 +108,6 @@ Finderから起動する場合は `dist/ClaudexDesktop.app` を `~/Applications`
 
 標準の `Claude Desktop` アプリ本体は変更しません。Desktopのプロバイダー設定は `ClaudexDesktop` がセッションを管理している間だけ変更します。ゲートウェイはループバック限定で、Claude Desktop終了後も常駐できます。
 
-## LinuxのClaude Desktop
-
-ゲートウェイ、Desktopランチャー、実行時リソースを同じディレクトリへビルドします。
-
-```sh
-mkdir -p dist/claudexdesktop
-go build -o dist/claudexdesktop/claudex-server ./cmd/claudex
-go build -o dist/claudexdesktop/claudex-desktop ./cmd/claudexdesktop
-cp claudex.example.yaml dist/claudexdesktop/
-```
-
-互換性のあるLinux版Claude Desktopが `claude-desktop` コマンドで起動できる状態で、これらのファイルがあるディレクトリからランチャーを実行します。
-
-```sh
-CLAUDEX_RESOURCE_DIR="$PWD/dist/claudexdesktop" \
-  ./dist/claudexdesktop/claudex-desktop
-```
-
-Linuxモードはループバックゲートウェイを起動または再利用し、専用の子プロセス環境変数でゲートウェイ設定を渡し、Desktop終了後もゲートウェイを常駐させます。通常のDesktop設定は変更しません。起動コマンドやプロセス名が既定値と異なる場合は、`CLAUDEX_DESKTOP_COMMAND` と `CLAUDEX_DESKTOP_PROCESS_NAME` を指定します。
-
-## クロスプラットフォームセットアップ
-
-リポジトリには `justfile` と、Windows・macOS・Linuxで動作するネイティブランチャーを含めています。`just` をCargoで一度だけ導入し、リポジトリのルートでセットアップタスクを実行します。
-
-```sh
-cargo install just --locked
-just setup
-```
-
-`just setup` は設定ファイルを作成し、ローカルクライアントキーを生成し、ネイティブサーバーをビルドしてランチャーを配置します。検出できるシェルではランチャーのディレクトリをユーザー `PATH` に追加します。Windows ARM64では `$HOME\\.config\\claudex\\claudex.yaml` と `$HOME\\bin`、macOS/Linuxでは `${XDG_CONFIG_HOME:-$HOME/.config}/claudex/claudex.yaml` と `${XDG_BIN_HOME:-$HOME/.local/bin}` を使用します。セットアップ後は新しいターミナルを開いてください。
-
-ブラウザOAuthでCodexにログインし、ローカルゲートウェイ経由でClaude Codeを起動します。
-
-```sh
-just login
-just run
-```
-
-`just serve` はゲートウェイだけを起動し、`just build` はネイティブランチャーを再ビルドし、`just verify` は対象テストとビルドを実行します。
-
 ## セキュリティと利用境界
 
 Claudexのサポート対象は、1人の利用者がローカルで使うゲートウェイです。
