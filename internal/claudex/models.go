@@ -15,9 +15,9 @@ type ModelProfile struct {
 }
 
 var modelProfiles = []ModelProfile{
-	{ID: FixedModelID, Upstream: FixedUpstreamModel, Label: "Codex GPT-5.6 Luna"},
 	{ID: "claude-opus-4-8", Upstream: "gpt-5.6-sol", Label: "Codex GPT-5.6 Sol"},
-	{ID: "claude-haiku-4-5", Upstream: "gpt-5.6-terra", Label: "Codex GPT-5.6 Terra"},
+	{ID: FixedModelID, Upstream: FixedUpstreamModel, Label: "Codex GPT-5.6 Terra"},
+	{ID: "claude-haiku-4-5", Upstream: "gpt-5.6-luna", Label: "Codex GPT-5.6 Luna"},
 }
 
 // ModelProfiles returns the models exposed by ClaudexDesktop.
