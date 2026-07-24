@@ -20,7 +20,7 @@ const (
 	DefaultPort           = 8317
 	DefaultAuthDir        = "~/.claudex"
 	FixedModelID          = "claude-sonnet-4-6"
-	FixedUpstreamModel    = "gpt-5.6-luna"
+	FixedUpstreamModel    = "gpt-5.6-terra"
 	DefaultEffort         = "xhigh"
 	maxRequestBodyBytes   = 32 << 20
 	anthropicMessagesPath = "/v1/messages"
