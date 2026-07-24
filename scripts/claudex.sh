@@ -79,10 +79,10 @@ fi
 
 ANTHROPIC_BASE_URL="$base_url" \
 ANTHROPIC_AUTH_TOKEN="$local_key" \
-ANTHROPIC_MODEL="gpt-5.6-luna" \
-ANTHROPIC_DEFAULT_OPUS_MODEL="gpt-5.6-luna" \
-ANTHROPIC_DEFAULT_SONNET_MODEL="gpt-5.6-luna" \
+ANTHROPIC_MODEL="gpt-5.6-sol" \
+ANTHROPIC_DEFAULT_OPUS_MODEL="gpt-5.6-sol" \
+ANTHROPIC_DEFAULT_SONNET_MODEL="gpt-5.6-terra" \
 ANTHROPIC_DEFAULT_HAIKU_MODEL="gpt-5.6-luna" \
 CLAUDE_CODE_EFFORT_LEVEL="xhigh" \
 CLAUDE_CODE_ALWAYS_ENABLE_EFFORT="1" \
-exec "$command_path" --model gpt-5.6-luna --effort xhigh "$@"
+exec "$command_path" --model gpt-5.6-sol --effort xhigh "$@"
