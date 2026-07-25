@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	internalconfig "github.com/router-for-me/CLIProxyAPI/v7/internal/config"
 	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -48,6 +49,7 @@ func Normalize(cfg *config.Config) {
 		cfg.AuthDir = DefaultAuthDir
 	}
 	ensureModelAliases(cfg)
+	ensureCodexKeyModelAliases(cfg)
 }
 
 func ensureModelAliases(cfg *config.Config) {
@@ -80,6 +82,36 @@ func ensureModelAliases(cfg *config.Config) {
 		}
 	}
 	cfg.OAuthModelAlias["codex"] = aliases
+}
+
+func ensureCodexKeyModelAliases(cfg *config.Config) {
+	if cfg == nil {
+		return
+	}
+
+	profiles := supportedModelAliases()
+	for keyIndex := range cfg.CodexKey {
+		models := cfg.CodexKey[keyIndex].Models
+		for _, profile := range profiles {
+			found := false
+			for modelIndex := range models {
+				if strings.EqualFold(strings.TrimSpace(models[modelIndex].Alias), profile.ID) {
+					models[modelIndex].Name = profile.Upstream
+					models[modelIndex].ForceMapping = true
+					found = true
+					break
+				}
+			}
+			if !found {
+				models = append(models, internalconfig.CodexModel{
+					Name:         profile.Upstream,
+					Alias:        profile.ID,
+					ForceMapping: true,
+				})
+			}
+		}
+		cfg.CodexKey[keyIndex].Models = models
+	}
 }
 
 // Validate verifies that a generic CLIProxyAPI configuration stays within the

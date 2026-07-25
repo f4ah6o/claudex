@@ -156,6 +156,43 @@ func TestNormalizeOverridesSelectedModelAliases(t *testing.T) {
 	t.Fatal("missing claude-opus-5 alias")
 }
 
+func TestNormalizeAddsModelAliasesToCodexAPIKeys(t *testing.T) {
+	t.Parallel()
+
+	cfg := &config.Config{
+		CodexKey: []config.CodexKey{{
+			APIKey:  "codex-api-key",
+			BaseURL: "https://example.com/codex",
+			Models: []internalconfig.CodexModel{
+				{Name: "gpt-5.6-sol", Alias: "claude-sonnet-5"},
+				{Name: "gpt-5.6", Alias: "custom-model"},
+			},
+		}},
+	}
+	Normalize(cfg)
+	Normalize(cfg)
+
+	models := cfg.CodexKey[0].Models
+	if len(models) != len(supportedModelAliases())+1 {
+		t.Fatalf("Codex API-key aliases = %d, want %d", len(models), len(supportedModelAliases())+1)
+	}
+	for _, profile := range supportedModelAliases() {
+		found := false
+		for _, model := range models {
+			if strings.EqualFold(model.Alias, profile.ID) {
+				if model.Name != profile.Upstream || !model.ForceMapping {
+					t.Fatalf("Codex API-key alias %q = %#v, want %q with force mapping", profile.ID, model, profile.Upstream)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("missing Codex API-key alias %q", profile.ID)
+		}
+	}
+}
+
 func TestValidateRejectsHaikuAlias(t *testing.T) {
 	t.Parallel()
 
