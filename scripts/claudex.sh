@@ -77,12 +77,14 @@ if [ -z "$command_path" ]; then
     exit 1
 fi
 
+unset ANTHROPIC_DEFAULT_HAIKU_MODEL
+
 ANTHROPIC_BASE_URL="$base_url" \
 ANTHROPIC_AUTH_TOKEN="$local_key" \
-ANTHROPIC_MODEL="gpt-5.6-sol" \
-ANTHROPIC_DEFAULT_OPUS_MODEL="gpt-5.6-sol" \
-ANTHROPIC_DEFAULT_SONNET_MODEL="gpt-5.6-terra" \
-ANTHROPIC_DEFAULT_HAIKU_MODEL="gpt-5.6-luna" \
+ANTHROPIC_MODEL="claude-sonnet-5" \
+ANTHROPIC_DEFAULT_FABLE_MODEL="claude-fable-5" \
+ANTHROPIC_DEFAULT_OPUS_MODEL="claude-opus-5" \
+ANTHROPIC_DEFAULT_SONNET_MODEL="claude-sonnet-5" \
 CLAUDE_CODE_EFFORT_LEVEL="xhigh" \
 CLAUDE_CODE_ALWAYS_ENABLE_EFFORT="1" \
-exec "$command_path" --model gpt-5.6-sol --effort xhigh "$@"
+exec "$command_path" --model claude-sonnet-5 --effort xhigh "$@"

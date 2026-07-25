@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	internalconfig "github.com/router-for-me/CLIProxyAPI/v7/internal/config"
 	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 	"github.com/tidwall/gjson"
 )
@@ -51,7 +52,7 @@ func TestValidateRejectsAliasOutsideGPT56(t *testing.T) {
 	cfg := focusedConfig()
 	cfg.OAuthModelAlias["codex"] = append(cfg.OAuthModelAlias["codex"], config.OAuthModelAlias{
 		Name:  "gpt-5.5",
-		Alias: "claude-haiku-4-5",
+		Alias: "custom-claude-model",
 	})
 	if err := Validate(cfg); err == nil || !strings.Contains(err.Error(), "gpt-5.5") {
 		t.Fatalf("Validate() error = %v, want unsupported model rejection", err)
@@ -65,13 +66,13 @@ func TestExampleConfigMapsClaudeTiers(t *testing.T) {
 	}
 
 	want := map[string]string{
-		"claude-opus-4-8":           "gpt-5.6-sol",
-		"claude-opus-4-7":           "gpt-5.6-sol",
-		"claude-opus-4-6":           "gpt-5.6-sol",
-		"claude-sonnet-5":           "gpt-5.6-terra",
-		"claude-sonnet-4-6":         "gpt-5.6-terra",
-		"claude-haiku-4-5":          "gpt-5.6-luna",
-		"claude-haiku-4-5-20251001": "gpt-5.6-luna",
+		"claude-fable-5":    "gpt-5.6-sol",
+		"claude-opus-5":     "gpt-5.6-terra",
+		"claude-sonnet-5":   "gpt-5.6-luna",
+		"claude-opus-4-8":   "gpt-5.6-terra",
+		"claude-opus-4-7":   "gpt-5.6-terra",
+		"claude-opus-4-6":   "gpt-5.6-terra",
+		"claude-sonnet-4-6": "gpt-5.6-luna",
 	}
 	got := make(map[string]string)
 	for _, alias := range cfg.OAuthModelAlias["codex"] {
@@ -82,13 +83,18 @@ func TestExampleConfigMapsClaudeTiers(t *testing.T) {
 			t.Fatalf("example alias %q = %q, want %q", alias, got[alias], model)
 		}
 	}
+	for alias := range got {
+		if isHaikuModelAlias(alias) {
+			t.Fatalf("example configuration unexpectedly contains Haiku alias %q", alias)
+		}
+	}
 }
 
 func TestPolicyAllowsConfiguredClaudeAliases(t *testing.T) {
 	t.Parallel()
 
 	policy := NewPolicy(focusedConfig())
-	for _, model := range []string{"gpt-5.6", "gpt-5.6-sol", "claude-opus-4-6", "claude-sonnet-4-6"} {
+	for _, model := range []string{"gpt-5.6", "gpt-5.6-sol", "claude-fable-5", "claude-opus-5", "claude-sonnet-5", "claude-opus-4-6", "claude-sonnet-4-6"} {
 		if !policy.AllowsModel(model) {
 			t.Fatalf("AllowsModel(%q) = false, want true", model)
 		}
@@ -98,8 +104,8 @@ func TestPolicyAllowsConfiguredClaudeAliases(t *testing.T) {
 			t.Fatalf("AllowsModel(%q) = false, want true", profile.ID)
 		}
 	}
-	if policy.AllowsModel("claude-opus-4-7") {
-		t.Fatal("AllowsModel(claude-opus-4-7) = true, want false")
+	if policy.AllowsModel("claude-haiku-4-5") {
+		t.Fatal("AllowsModel(claude-haiku-4-5) = true, want false")
 	}
 }
 
@@ -109,10 +115,10 @@ func TestNormalizeAddsModelAliases(t *testing.T) {
 	cfg := &config.Config{}
 	Normalize(cfg)
 
-	if len(cfg.OAuthModelAlias["codex"]) != len(ModelProfiles()) {
-		t.Fatalf("fixed aliases = %#v, want %d aliases", cfg.OAuthModelAlias["codex"], len(ModelProfiles()))
+	if len(cfg.OAuthModelAlias["codex"]) != len(supportedModelAliases()) {
+		t.Fatalf("fixed aliases = %#v, want %d aliases", cfg.OAuthModelAlias["codex"], len(supportedModelAliases()))
 	}
-	for _, profile := range ModelProfiles() {
+	for _, profile := range supportedModelAliases() {
 		found := false
 		for _, alias := range cfg.OAuthModelAlias["codex"] {
 			if alias.Alias == profile.ID {
@@ -134,20 +140,50 @@ func TestNormalizeOverridesSelectedModelAliases(t *testing.T) {
 
 	cfg := &config.Config{
 		OAuthModelAlias: map[string][]config.OAuthModelAlias{
-			"codex": {{Name: "gpt-5.6-luna", Alias: "claude-opus-4-8"}},
+			"codex": {{Name: "gpt-5.6-luna", Alias: "claude-opus-5"}},
 		},
 	}
 	Normalize(cfg)
 
 	for _, alias := range cfg.OAuthModelAlias["codex"] {
-		if alias.Alias == "claude-opus-4-8" {
-			if alias.Name != "gpt-5.6-sol" {
-				t.Fatalf("Opus alias target = %q, want gpt-5.6-sol", alias.Name)
+		if alias.Alias == "claude-opus-5" {
+			if alias.Name != "gpt-5.6-terra" {
+				t.Fatalf("Opus alias target = %q, want gpt-5.6-terra", alias.Name)
 			}
 			return
 		}
 	}
-	t.Fatal("missing claude-opus-4-8 alias")
+	t.Fatal("missing claude-opus-5 alias")
+}
+
+func TestValidateRejectsHaikuAlias(t *testing.T) {
+	t.Parallel()
+
+	cfg := focusedConfig()
+	cfg.OAuthModelAlias["codex"] = append(cfg.OAuthModelAlias["codex"], config.OAuthModelAlias{
+		Name:  "gpt-5.6-luna",
+		Alias: "claude-haiku-4-5",
+	})
+	if err := Validate(cfg); err == nil || !strings.Contains(err.Error(), "claude-haiku-4-5") {
+		t.Fatalf("Validate() error = %v, want Haiku alias rejection", err)
+	}
+}
+
+func TestPolicyRejectsConfiguredHaikuAlias(t *testing.T) {
+	t.Parallel()
+
+	cfg := focusedConfig()
+	cfg.CodexKey = []config.CodexKey{{Models: []internalconfig.CodexModel{{
+		Name:  "gpt-5.6-luna",
+		Alias: "claude-haiku-4-5",
+	}}}}
+
+	if err := Validate(cfg); err == nil || !strings.Contains(err.Error(), "claude-haiku-4-5") {
+		t.Fatalf("Validate() error = %v, want Haiku alias rejection", err)
+	}
+	if NewPolicy(cfg).AllowsModel("claude-haiku-4-5") {
+		t.Fatal("AllowsModel(claude-haiku-4-5) = true, want false")
+	}
 }
 
 func TestApplyDefaultEffort(t *testing.T) {
@@ -196,7 +232,7 @@ func TestMiddlewareRestrictsRoutesAndModels(t *testing.T) {
 		c.Status(http.StatusNoContent)
 	})
 
-	for _, model := range []string{"gpt-5.6-sol", "claude-opus-4-6"} {
+	for _, model := range []string{"gpt-5.6-sol", "claude-fable-5", "claude-sonnet-4-6"} {
 		request := httptest.NewRequest(http.MethodPost, anthropicMessagesPath, strings.NewReader(`{"model":"`+model+`"}`))
 		response := httptest.NewRecorder()
 		router.ServeHTTP(response, request)
@@ -230,8 +266,8 @@ func TestMiddlewareRestrictsRoutesAndModels(t *testing.T) {
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("generic route status = %d, want %d", response.Code, http.StatusNotFound)
 	}
-	if handled != 3 {
-		t.Fatalf("handler called %d times, want 3", handled)
+	if handled != 4 {
+		t.Fatalf("handler called %d times, want 4", handled)
 	}
 }
 
@@ -245,8 +281,8 @@ func focusedConfig() *config.Config {
 		},
 		OAuthModelAlias: map[string][]config.OAuthModelAlias{
 			"codex": {
-				{Name: "gpt-5.6-sol", Alias: "claude-opus-4-6", Fork: true, ForceMapping: true},
-				{Name: "gpt-5.6-terra", Alias: "claude-sonnet-4-6", Fork: true, ForceMapping: true},
+				{Name: "gpt-5.6-terra", Alias: "claude-opus-4-6", Fork: true, ForceMapping: true},
+				{Name: "gpt-5.6-luna", Alias: "claude-sonnet-4-6", Fork: true, ForceMapping: true},
 			},
 		},
 	}

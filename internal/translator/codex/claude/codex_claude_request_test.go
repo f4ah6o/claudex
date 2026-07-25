@@ -102,6 +102,20 @@ func TestConvertClaudeRequestToCodex_SystemMessageScenarios(t *testing.T) {
 	}
 }
 
+func TestConvertClaudeRequestToCodex_AdaptiveMaxMapsToXHigh(t *testing.T) {
+	inputJSON := `{
+		"model": "claude-sonnet-5",
+		"thinking": {"type": "adaptive"},
+		"output_config": {"effort": "max"},
+		"messages": [{"role": "user", "content": "hello"}]
+	}`
+
+	result := ConvertClaudeRequestToCodex("claude-sonnet-5", []byte(inputJSON), false)
+	if got := gjson.GetBytes(result, "reasoning.effort").String(); got != "xhigh" {
+		t.Fatalf("reasoning.effort = %q, want xhigh; output=%s", got, result)
+	}
+}
+
 func TestConvertClaudeRequestToCodex_MessageSystemRoleWrapsAsUserReminder(t *testing.T) {
 	inputJSON := `{
 		"model": "claude-3-opus",

@@ -19,8 +19,6 @@ const (
 	DefaultHost           = "127.0.0.1"
 	DefaultPort           = 8317
 	DefaultAuthDir        = "~/.claudex"
-	FixedModelID          = "claude-sonnet-4-6"
-	FixedUpstreamModel    = "gpt-5.6-terra"
 	DefaultEffort         = "xhigh"
 	maxRequestBodyBytes   = 32 << 20
 	anthropicMessagesPath = "/v1/messages"
@@ -61,7 +59,7 @@ func ensureModelAliases(cfg *config.Config) {
 	}
 
 	aliases := cfg.OAuthModelAlias["codex"]
-	for _, profile := range ModelProfiles() {
+	for _, profile := range supportedModelAliases() {
 		found := false
 		for index := range aliases {
 			if strings.EqualFold(strings.TrimSpace(aliases[index].Alias), profile.ID) {
@@ -134,6 +132,10 @@ func Validate(cfg *config.Config) error {
 			continue
 		}
 		for _, alias := range aliases {
+			if isHaikuModelAlias(alias.Alias) {
+				problems = append(problems, fmt.Sprintf("unsupported Claude model alias %q", alias.Alias))
+				continue
+			}
 			if !IsGPT56Model(alias.Name) {
 				problems = append(problems, fmt.Sprintf("Codex alias %q targets unsupported model %q", alias.Alias, alias.Name))
 			}
@@ -148,6 +150,10 @@ func Validate(cfg *config.Config) error {
 
 	for keyIndex, key := range cfg.CodexKey {
 		for _, model := range key.Models {
+			if isHaikuModelAlias(model.Alias) {
+				problems = append(problems, fmt.Sprintf("unsupported Claude model alias %q", model.Alias))
+				continue
+			}
 			if !IsGPT56Model(model.Name) {
 				problems = append(problems, fmt.Sprintf("codex-api-key[%d] alias %q targets unsupported model %q", keyIndex, model.Alias, model.Name))
 			}
@@ -179,10 +185,10 @@ func ValidateServe(cfg *config.Config) error {
 // NewPolicy builds the client-visible alias map accepted by the model gate.
 func NewPolicy(cfg *config.Config) Policy {
 	p := Policy{aliases: make(map[string]string)}
-	for _, profile := range ModelProfiles() {
-		p.aliases[profile.ID] = profile.Upstream
-	}
 	if cfg == nil {
+		for _, profile := range supportedModelAliases() {
+			p.aliases[profile.ID] = profile.Upstream
+		}
 		return p
 	}
 	for provider, aliases := range cfg.OAuthModelAlias {
@@ -190,6 +196,9 @@ func NewPolicy(cfg *config.Config) Policy {
 			continue
 		}
 		for _, alias := range aliases {
+			if isHaikuModelAlias(alias.Alias) {
+				continue
+			}
 			if IsGPT56Model(alias.Name) && strings.TrimSpace(alias.Alias) != "" {
 				p.aliases[strings.TrimSpace(alias.Alias)] = strings.TrimSpace(alias.Name)
 			}
@@ -197,12 +206,22 @@ func NewPolicy(cfg *config.Config) Policy {
 	}
 	for _, key := range cfg.CodexKey {
 		for _, model := range key.Models {
+			if isHaikuModelAlias(model.Alias) {
+				continue
+			}
 			if IsGPT56Model(model.Name) && strings.TrimSpace(model.Alias) != "" {
 				p.aliases[strings.TrimSpace(model.Alias)] = strings.TrimSpace(model.Name)
 			}
 		}
 	}
+	for _, profile := range supportedModelAliases() {
+		p.aliases[profile.ID] = profile.Upstream
+	}
 	return p
+}
+
+func isHaikuModelAlias(model string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(model)), "claude-haiku-")
 }
 
 // IsGPT56Model accepts the base model and all hyphenated GPT-5.6 variants,
@@ -216,6 +235,9 @@ func IsGPT56Model(model string) bool {
 // alias is allowed.
 func (p Policy) AllowsModel(model string) bool {
 	model = strings.TrimSpace(model)
+	if isHaikuModelAlias(model) {
+		return false
+	}
 	if IsGPT56Model(model) {
 		return true
 	}

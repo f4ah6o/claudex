@@ -11,13 +11,14 @@
 
 ### Changed
 
-- Exposed an authenticated Anthropic-format `/v1/models` catalog containing the three Codex-backed profiles: Opus/Sol, Sonnet/Terra, and Haiku/Luna.
+- Exposed an authenticated Anthropic-format `/v1/models` catalog containing the three Codex-backed profiles: Fable 5/Sol, Opus 5/Terra, and Sonnet 5/Luna.
+- Added interactive CLI model and effort switching, including `max` to `xhigh` normalization for GPT.
 - Documented Claudex as an independent local single-user project, including the name origin, credential boundaries, supported installation method, and retained upstream Go module path.
 
 ### Fixed
 
 - Ignored repository-local Claudex configuration and Desktop preference backup files so generated credentials are not committed during normal use.
-- Aligned legacy, versioned, Desktop, and launcher model mappings with Opus/Sol, Sonnet/Terra, and Haiku/Luna.
+- Aligned legacy, versioned, Desktop, and launcher model mappings with Fable 5/Sol, Opus 5/Terra, and Sonnet 5/Luna; Haiku is no longer supported.
 
 ### Deprecated
 

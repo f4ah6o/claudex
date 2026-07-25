@@ -41,30 +41,30 @@ quota-exceeded:
 oauth-model-alias:
   codex:
     - name: "gpt-5.6-sol"
-      alias: "claude-opus-4-8"
-      fork: true
-      force-mapping: true
-    - name: "gpt-5.6-sol"
-      alias: "claude-opus-4-7"
-      fork: true
-      force-mapping: true
-    - name: "gpt-5.6-sol"
-      alias: "claude-opus-4-6"
+      alias: "claude-fable-5"
       fork: true
       force-mapping: true
     - name: "gpt-5.6-terra"
+      alias: "claude-opus-5"
+      fork: true
+      force-mapping: true
+    - name: "gpt-5.6-luna"
       alias: "claude-sonnet-5"
       fork: true
       force-mapping: true
     - name: "gpt-5.6-terra"
+      alias: "claude-opus-4-8"
+      fork: true
+      force-mapping: true
+    - name: "gpt-5.6-terra"
+      alias: "claude-opus-4-7"
+      fork: true
+      force-mapping: true
+    - name: "gpt-5.6-terra"
+      alias: "claude-opus-4-6"
+      fork: true
+      force-mapping: true
+    - name: "gpt-5.6-luna"
       alias: "claude-sonnet-4-6"
-      fork: true
-      force-mapping: true
-    - name: "gpt-5.6-luna"
-      alias: "claude-haiku-4-5"
-      fork: true
-      force-mapping: true
-    - name: "gpt-5.6-luna"
-      alias: "claude-haiku-4-5-20251001"
       fork: true
       force-mapping: true

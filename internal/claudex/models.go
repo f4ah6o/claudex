@@ -14,10 +14,32 @@ type ModelProfile struct {
 	Label    string
 }
 
+const (
+	FableModelID        = "claude-fable-5"
+	FableUpstreamModel  = "gpt-5.6-sol"
+	OpusModelID         = "claude-opus-5"
+	OpusUpstreamModel   = "gpt-5.6-terra"
+	SonnetModelID       = "claude-sonnet-5"
+	SonnetUpstreamModel = "gpt-5.6-luna"
+	DefaultModelID      = SonnetModelID
+)
+
 var modelProfiles = []ModelProfile{
-	{ID: "claude-opus-4-8", Upstream: "gpt-5.6-sol", Label: "Codex GPT-5.6 Sol"},
-	{ID: FixedModelID, Upstream: FixedUpstreamModel, Label: "Codex GPT-5.6 Terra"},
-	{ID: "claude-haiku-4-5", Upstream: "gpt-5.6-luna", Label: "Codex GPT-5.6 Luna"},
+	{ID: FableModelID, Upstream: FableUpstreamModel, Label: "Codex GPT-5.6 Sol"},
+	{ID: OpusModelID, Upstream: OpusUpstreamModel, Label: "Codex GPT-5.6 Terra"},
+	{ID: SonnetModelID, Upstream: SonnetUpstreamModel, Label: "Codex GPT-5.6 Luna"},
+}
+
+var compatibilityModelAliases = []ModelProfile{
+	{ID: "claude-opus-4-8", Upstream: OpusUpstreamModel},
+	{ID: "claude-opus-4-7", Upstream: OpusUpstreamModel},
+	{ID: "claude-opus-4-6", Upstream: OpusUpstreamModel},
+	{ID: "claude-sonnet-4-6", Upstream: SonnetUpstreamModel},
+}
+
+func supportedModelAliases() []ModelProfile {
+	aliases := ModelProfiles()
+	return append(aliases, compatibilityModelAliases...)
 }
 
 // ModelProfiles returns the models exposed by ClaudexDesktop.
