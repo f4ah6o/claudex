@@ -92,7 +92,7 @@ Haiku is not supported because its client context window is too small for this u
 
 `CHANGES.md` impact: yes
 
-項目案：
+Suggested Changelog Entry:
 
 - Update Claude/Codex model mappings to Fable 5/Sol, Opus 5/Terra, and Sonnet 5/Luna; remove Haiku and support interactive CLI model and effort switching.
 
