@@ -22,6 +22,8 @@ const (
 	SonnetModelID       = "claude-sonnet-5"
 	SonnetUpstreamModel = "gpt-5.6-luna"
 	DefaultModelID      = SonnetModelID
+	modelMaxInputTokens = 372000
+	modelMaxTokens      = 128000
 )
 
 var modelProfiles = []ModelProfile{
@@ -74,8 +76,8 @@ func FixedModelsHandler() gin.HandlerFunc {
 				"owned_by":         "claudex",
 				"display_name":     profile.Label,
 				"created_at":       "2026-01-01T00:00:00Z",
-				"max_input_tokens": 200000,
-				"max_tokens":       64000,
+				"max_input_tokens": modelMaxInputTokens,
+				"max_tokens":       modelMaxTokens,
 			})
 		}
 		c.JSON(http.StatusOK, gin.H{
