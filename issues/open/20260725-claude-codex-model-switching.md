@@ -3,14 +3,14 @@
 Status: open
 Model: GPT-5
 Created: 2026-07-25
-Updated: 2026-07-25
+Updated: 2026-07-26
 Branch: feat/20260725-claude-codex-model-switching
 
-## 概要
+## Summary
 
 Update the Claude-to-Codex model mapping to the Fable 5, Opus 5, and Sonnet 5 tiers, remove Haiku from the supported surface, and make the interactive CLI support `/model` and `/effort` with Codex-compatible effort handling.
 
-## 背景
+## Background
 
 Claudex exposes Codex models through the Anthropic Messages API used by Claude Code. The current implementation maps Opus to Sol, Sonnet to Terra, and Haiku to Luna. The same model profiles are used by the Desktop GUI catalog and by the gateway's forced OAuth aliases.
 
@@ -24,7 +24,7 @@ The desired tier mapping is:
 
 Haiku is not supported because its client context window is too small for this use case. Existing Opus and Sonnet IDs remain accepted as compatibility aliases and follow their tier's new mapping. Direct `gpt-5.6` and `gpt-5.6-*` requests remain allowed.
 
-## 問題
+## Problem
 
 - `internal/claudex` currently exposes and forces the old Opus/Sonnet/Haiku mapping.
 - The Desktop model catalog and example configuration describe the old tier names and targets.
@@ -32,7 +32,7 @@ Haiku is not supported because its client context window is too small for this u
 - The GPT-5.6 model metadata currently lists `max` as a supported reasoning level, although the Codex target should receive `xhigh` instead.
 - The gateway preserves an explicit Claude effort value without normalizing `max` for the GPT-backed route.
 
-## 目標
+## Goals
 
 - Use Fable 5/Sol, Opus 5/Terra, and Sonnet 5/Luna consistently across the gateway, configuration examples, Desktop catalog, and CLI launchers.
 - Reject Haiku model aliases and omit Haiku from the public model catalog and launcher defaults.
@@ -41,7 +41,7 @@ Haiku is not supported because its client context window is too small for this u
 - Allow Claude Code's `/effort` command to affect requests; normalize `max` to `xhigh` for GPT while preserving `low`, `medium`, `high`, and `xhigh`.
 - Keep `xhigh` as the default when the client does not provide an effort and preserve explicit thinking disablement.
 
-## 対象外
+## Out of Scope
 
 - Adding a new upstream provider or changing the Anthropic or Codex authentication flow.
 - Increasing or changing the client context window behavior.
@@ -49,7 +49,7 @@ Haiku is not supported because its client context window is too small for this u
 - Adding a separate GUI implementation; the existing Desktop GUI should consume the updated shared model catalog.
 - Changing the generic proxy surface outside the Claudex-supported Anthropic Messages endpoints.
 
-## 提案する方針
+## Proposed Approach
 
 1. Update `internal/claudex/models.go` and its tests so the shared catalog contains `claude-fable-5`, `claude-opus-5`, and `claude-sonnet-5` with Sol, Terra, and Luna targets respectively.
 2. Update `internal/claudex/policy.go` and policy tests so `Normalize` adds the new forced aliases, old Opus/Sonnet aliases remain compatible, Haiku aliases are not added or allowed, and the default CLI model is represented by the Sonnet 5 ID where applicable.
@@ -59,7 +59,7 @@ Haiku is not supported because its client context window is too small for this u
 6. Remove `max` from the embedded GPT-5.6 model metadata so model capability information matches the Codex contract.
 7. Add focused regression tests for the new model profiles, legacy alias targets, Haiku rejection, direct GPT model acceptance, effort normalization, and launcher defaults.
 
-## 受け入れ条件
+## Acceptance Criteria
 
 - [ ] `claude-fable-5`, `claude-opus-5`, and `claude-sonnet-5` route to `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna` respectively.
 - [ ] The Desktop `/v1/models` catalog and inference model preference contain exactly the three supported Claude model IDs and do not contain Haiku.
@@ -71,7 +71,7 @@ Haiku is not supported because its client context window is too small for this u
 - [ ] GPT-5.6 model metadata no longer advertises `max` as a supported level.
 - [ ] Existing unrelated user changes are preserved.
 
-## テスト計画
+## Test Plan
 
 - Run focused tests for `internal/claudex`, `internal/thinking`, and affected launcher packages.
 - Add or update HTTP policy tests for model acceptance/rejection and default effort behavior.
@@ -81,14 +81,14 @@ Haiku is not supported because its client context window is too small for this u
 - Run `go build -o test-output ./cmd/claudex && rm test-output`.
 - Review shell and PowerShell launcher command construction and documentation search results for stale Sol/Terra/Luna tier assignments or Haiku references.
 
-## リスク
+## Risks
 
 - Claude Code may send versioned model IDs not listed in the example configuration; legacy Opus/Sonnet aliases must remain broad enough to preserve compatibility without reintroducing Haiku.
 - The interactive `/model` picker depends on Claude Code's client behavior and the gateway's model catalog; the launcher must not duplicate conflicting model flags.
 - A stale remote model registry could reintroduce unsupported effort metadata; the embedded catalog and request conversion must remain safe when remote updates are unavailable.
 - Changing model IDs in the Desktop catalog can affect persisted user selections; gateway compatibility aliases reduce request failures, but old catalog entries will no longer be advertised.
 
-## 変更履歴
+## Changelog Impact
 
 `CHANGES.md` impact: yes
 
@@ -96,7 +96,7 @@ Haiku is not supported because its client context window is too small for this u
 
 - Update Claude/Codex model mappings to Fable 5/Sol, Opus 5/Terra, and Sonnet 5/Luna; remove Haiku and support interactive CLI model and effort switching.
 
-## 注記
+## Notes
 
 - The previous mapping is documented in `issues/closed/20260724-public-release-readiness.md` and the current implementation files under `internal/claudex/`.
 - The implementation should remain on the planned branch `feat/20260725-claude-codex-model-switching`.

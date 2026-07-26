@@ -253,7 +253,9 @@ func NewPolicy(cfg *config.Config) Policy {
 }
 
 func isHaikuModelAlias(model string) bool {
-	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(model)), "claude-haiku-")
+	model = strings.ToLower(strings.TrimSpace(model))
+	return strings.HasPrefix(model, "claude-") &&
+		(strings.Contains(model, "-haiku-") || strings.HasSuffix(model, "-haiku"))
 }
 
 // IsGPT56Model accepts the base model and all hyphenated GPT-5.6 variants,

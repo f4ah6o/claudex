@@ -104,8 +104,10 @@ func TestPolicyAllowsConfiguredClaudeAliases(t *testing.T) {
 			t.Fatalf("AllowsModel(%q) = false, want true", profile.ID)
 		}
 	}
-	if policy.AllowsModel("claude-haiku-4-5") {
-		t.Fatal("AllowsModel(claude-haiku-4-5) = true, want false")
+	for _, model := range []string{"claude-haiku-4-5", "claude-3-5-haiku-20241022"} {
+		if policy.AllowsModel(model) {
+			t.Fatalf("AllowsModel(%s) = true, want false", model)
+		}
 	}
 }
 
@@ -196,13 +198,18 @@ func TestNormalizeAddsModelAliasesToCodexAPIKeys(t *testing.T) {
 func TestValidateRejectsHaikuAlias(t *testing.T) {
 	t.Parallel()
 
-	cfg := focusedConfig()
-	cfg.OAuthModelAlias["codex"] = append(cfg.OAuthModelAlias["codex"], config.OAuthModelAlias{
-		Name:  "gpt-5.6-luna",
-		Alias: "claude-haiku-4-5",
-	})
-	if err := Validate(cfg); err == nil || !strings.Contains(err.Error(), "claude-haiku-4-5") {
-		t.Fatalf("Validate() error = %v, want Haiku alias rejection", err)
+	for _, alias := range []string{"claude-haiku-4-5", "claude-3-5-haiku-20241022"} {
+		alias := alias
+		t.Run(alias, func(t *testing.T) {
+			cfg := focusedConfig()
+			cfg.OAuthModelAlias["codex"] = append(cfg.OAuthModelAlias["codex"], config.OAuthModelAlias{
+				Name:  "gpt-5.6-luna",
+				Alias: alias,
+			})
+			if err := Validate(cfg); err == nil || !strings.Contains(err.Error(), alias) {
+				t.Fatalf("Validate() error = %v, want Haiku alias rejection", err)
+			}
+		})
 	}
 }
 
@@ -212,14 +219,14 @@ func TestPolicyRejectsConfiguredHaikuAlias(t *testing.T) {
 	cfg := focusedConfig()
 	cfg.CodexKey = []config.CodexKey{{Models: []internalconfig.CodexModel{{
 		Name:  "gpt-5.6-luna",
-		Alias: "claude-haiku-4-5",
+		Alias: "claude-3-5-haiku-20241022",
 	}}}}
 
-	if err := Validate(cfg); err == nil || !strings.Contains(err.Error(), "claude-haiku-4-5") {
+	if err := Validate(cfg); err == nil || !strings.Contains(err.Error(), "claude-3-5-haiku-20241022") {
 		t.Fatalf("Validate() error = %v, want Haiku alias rejection", err)
 	}
-	if NewPolicy(cfg).AllowsModel("claude-haiku-4-5") {
-		t.Fatal("AllowsModel(claude-haiku-4-5) = true, want false")
+	if NewPolicy(cfg).AllowsModel("claude-3-5-haiku-20241022") {
+		t.Fatal("AllowsModel(claude-3-5-haiku-20241022) = true, want false")
 	}
 }
 
