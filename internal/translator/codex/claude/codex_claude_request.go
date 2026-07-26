@@ -322,13 +322,13 @@ func ConvertClaudeRequestToCodex(modelName string, inputRawJSON []byte, _ bool) 
 			}
 		case "adaptive", "auto":
 			// Adaptive thinking can carry an explicit effort in output_config.effort (Claude 4.6).
-			// Pass through directly; ApplyThinking handles clamping to target model's levels.
+			// Normalize Claude's max to the Codex-compatible xhigh level before validation.
 			effort := ""
 			if v := rootResult.Get("output_config.effort"); v.Exists() && v.Type == gjson.String {
 				effort = strings.ToLower(strings.TrimSpace(v.String()))
 			}
 			if effort != "" {
-				reasoningEffort = effort
+				reasoningEffort = normalizeCodexReasoningEffort(effort)
 			} else {
 				reasoningEffort = string(thinking.LevelXHigh)
 			}
@@ -348,6 +348,13 @@ func ConvertClaudeRequestToCodex(modelName string, inputRawJSON []byte, _ bool) 
 	template, _ = sjson.SetBytes(template, "include", []string{"reasoning.encrypted_content"})
 
 	return template
+}
+
+func normalizeCodexReasoningEffort(effort string) string {
+	if strings.EqualFold(strings.TrimSpace(effort), string(thinking.LevelMax)) {
+		return string(thinking.LevelXHigh)
+	}
+	return strings.ToLower(strings.TrimSpace(effort))
 }
 
 func codexClaudeTargetAcceptsGrokSignature(modelName string) bool {

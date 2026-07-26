@@ -49,10 +49,6 @@
           "description": "Extra high reasoning depth for complex problems"
         },
         {
-          "effort": "max",
-          "description": "Maximum reasoning depth for the hardest problems"
-        },
-        {
           "effort": "ultra",
           "description": "Maximum reasoning with automatic task delegation"
         }
@@ -163,10 +159,6 @@
           "description": "Extra high reasoning depth for complex problems"
         },
         {
-          "effort": "max",
-          "description": "Maximum reasoning depth for the hardest problems"
-        },
-        {
           "effort": "ultra",
           "description": "Maximum reasoning with automatic task delegation"
         }
@@ -273,10 +265,6 @@
         {
           "effort": "xhigh",
           "description": "Extra high reasoning depth for complex problems"
-        },
-        {
-          "effort": "max",
-          "description": "Maximum reasoning depth for the hardest problems"
         }
       ],
       "shell_type": "shell_command",

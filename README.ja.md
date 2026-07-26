@@ -24,13 +24,13 @@ Claude、Claude Code、Codex、OpenAI などの名称および商標は各権利
 
 | Claudeプロファイル | Codexモデル | Desktopでの表示名 |
 | --- | --- | --- |
-| Opus | `gpt-5.6-sol` | Codex GPT-5.6 Sol |
-| Sonnet | `gpt-5.6-terra` | Codex GPT-5.6 Terra |
-| Haiku | `gpt-5.6-luna` | Codex GPT-5.6 Luna |
+| Fable 5 (`claude-fable-5`) | `gpt-5.6-sol` | Codex GPT-5.6 Sol |
+| Opus 5 (`claude-opus-5`) | `gpt-5.6-terra` | Codex GPT-5.6 Terra |
+| Sonnet 5 (`claude-sonnet-5`) | `gpt-5.6-luna` | Codex GPT-5.6 Luna |
 
-Claude Code はバージョン付きIDや組み込みのClaudeモデルIDを送信することがあります。`claudex.example.yaml` に、それらの対応済みaliasを定義しています。`gpt-5.6` および任意の `gpt-5.6-*` への直接リクエストも利用できます。このファミリー以外のモデルは、プロバイダーへ転送する前に拒否されます。
+Haiku はクライアント側の context window が小さいため、Claudex では公開しません。Claude Code はバージョン付きIDや組み込みのClaudeモデルIDを送信することがあります。`claudex.example.yaml` に、それらの対応済みalias（旧Opus/Sonnet IDを含む）を定義しています。`gpt-5.6` および任意の `gpt-5.6-*` への直接リクエストも利用できます。このファミリー以外のモデルは、プロバイダーへ転送する前に拒否されます。
 
-クライアントがthinkingを無効化した場合や独自のeffortを指定した場合を除き、Claudexは既定のeffortとして`xhigh`を適用します。
+クライアントがthinkingを無効化した場合や独自のeffortを指定した場合を除き、Claudexは既定のeffortとして`xhigh`を適用します。Claude Code の `/effort max` は GPT 向けに `xhigh` へ正規化します。
 
 ## 構成
 
@@ -74,10 +74,10 @@ Codexにログインしてプロキシを起動します。
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8317"
 export ANTHROPIC_AUTH_TOKEN="claudex.yaml に設定したローカルキー"
 
-claude --model opus --effort xhigh
+claude --model claude-sonnet-5 --effort xhigh
 ```
 
-Claude互換モデルIDは、前述のSol、Terra、Lunaの割り当てに従ってルーティングされます。`gpt-5.6-*` を直接指定した場合は、許可されたモデルファミリー内でClaudeプロファイルのaliasを経由せずに利用します。
+Claude互換モデルIDは、前述のFable 5／Sol、Opus 5／Terra、Sonnet 5／Lunaの割り当てに従ってルーティングされます。対話中は `/model` で3つのClaude IDを切り替え、`/effort` で推論強度を変更できます。`gpt-5.6-*` を直接指定した場合は、許可されたモデルファミリー内でClaudeプロファイルのaliasを経由せずに利用します。
 
 通常のAnthropic Claudeを使う場合は、ローカルゲートウェイ用の環境変数を解除します。
 
@@ -86,7 +86,7 @@ unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN
 claude --model opus
 ```
 
-同梱のネイティブランチャーはこの使い分けを自動化します。`claude` は通常のAnthropicコマンドのまま維持し、`claudex` はローカルゲートウェイを起動または再利用して、既定ではOpus／SolプロファイルでClaude Codeを起動します。Claude Codeのtier切り替え用にSonnet／Terra、Haiku／Lunaも設定します。このリポジトリからビルドする `./claudex` はゲートウェイサーバー本体です。
+同梱のネイティブランチャーはこの使い分けを自動化します。`claude` は通常のAnthropicコマンドのまま維持し、`claudex` はローカルゲートウェイを起動または再利用して、既定ではSonnet 5／LunaプロファイルでClaude Codeを起動します。Claude Codeのtier切り替え用にFable 5／Sol、Opus 5／Terraも設定します。このリポジトリからビルドする `./claudex` はゲートウェイサーバー本体です。
 
 ## macOSのClaude Desktop
 
@@ -104,7 +104,7 @@ Finderから起動できる `ClaudexDesktop.app` を、起動せずにビルド�
 
 Finderから起動する場合は `dist/ClaudexDesktop.app` を `~/Applications` にコピーします。初回起動時に `~/.config/claudex/claudex.yaml` を作成し、同梱サーバーを使ったCodexログインコマンドを表示します。コマンドを一度実行してから、もう一度 `ClaudexDesktop` を起動します。
 
-`ClaudexDesktop` はループバックゲートウェイを起動し、Claude DesktopのThird-Party Inference Gateway設定を有効にしてからClaude Desktopを開きます。モデル一覧にはCodex GPT-5.6 Sol、Terra、Lunaの3件を表示します。セッション終了時に以前のClaude Desktop設定へ戻します。ランチャーが中断された場合は、もう一度 `ClaudexDesktop` を開くと保留中の設定バックアップを復元してから新しいセッションを開始します。
+`ClaudexDesktop` はループバックゲートウェイを起動し、Claude DesktopのThird-Party Inference Gateway設定を有効にしてからClaude Desktopを開きます。モデル一覧にはFable 5／Sol、Opus 5／Terra、Sonnet 5／Lunaの3件を表示します。セッション終了時に以前のClaude Desktop設定へ戻します。ランチャーが中断された場合は、もう一度 `ClaudexDesktop` を開くと保留中の設定バックアップを復元してから新しいセッションを開始します。
 
 標準の `Claude Desktop` アプリ本体は変更しません。Desktopのプロバイダー設定は `ClaudexDesktop` がセッションを管理している間だけ変更します。ゲートウェイはループバック限定で、Claude Desktop終了後も常駐できます。
 

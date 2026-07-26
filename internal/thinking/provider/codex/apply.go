@@ -59,7 +59,11 @@ func (a *Applier) Apply(body []byte, config thinking.ThinkingConfig, modelInfo *
 	}
 
 	if config.Mode == thinking.ModeLevel {
-		result, _ := sjson.SetBytes(body, "reasoning.effort", string(config.Level))
+		effort := config.Level
+		if effort == thinking.LevelMax {
+			effort = thinking.LevelXHigh
+		}
+		result, _ := sjson.SetBytes(body, "reasoning.effort", string(effort))
 		return result, nil
 	}
 
@@ -96,6 +100,9 @@ func applyCompatibleCodex(body []byte, config thinking.ThinkingConfig) ([]byte, 
 			return body, nil
 		}
 		effort = string(config.Level)
+		if effort == string(thinking.LevelMax) {
+			effort = string(thinking.LevelXHigh)
+		}
 	case thinking.ModeNone:
 		effort = string(thinking.LevelNone)
 		if config.Level != "" {
