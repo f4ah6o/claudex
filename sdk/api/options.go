@@ -35,6 +35,10 @@ func WithAnthropicModelsHandler(handler gin.HandlerFunc) ServerOption {
 	return internalapi.WithAnthropicModelsHandler(handler)
 }
 
+// WithFocusedRoutes limits registration to the Anthropic Messages endpoints
+// required by a focused product integration.
+func WithFocusedRoutes() ServerOption { return internalapi.WithFocusedRoutes() }
+
 // WithLocalManagementPassword stores a runtime-only management password accepted for localhost requests.
 func WithLocalManagementPassword(password string) ServerOption {
 	return internalapi.WithLocalManagementPassword(password)

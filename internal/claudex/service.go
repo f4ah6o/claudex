@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -27,11 +28,22 @@ func LoadConfig(path string) (*config.Config, string, error) {
 	if err != nil {
 		return nil, "", fmt.Errorf("resolve configuration path: %w", err)
 	}
-	cfg, err := config.LoadConfigOptional(resolvedPath, false)
+	if info, errLstat := os.Lstat(resolvedPath); errLstat == nil {
+		if info.Mode()&os.ModeSymlink != 0 {
+			return nil, "", fmt.Errorf("configuration path must not be a symlink: %s", resolvedPath)
+		}
+		if errMode := validateConfigFileMode(info, resolvedPath); errMode != nil {
+			return nil, "", errMode
+		}
+	}
+	data, err := os.ReadFile(resolvedPath)
 	if err != nil {
 		return nil, "", fmt.Errorf("load %s: %w", resolvedPath, err)
 	}
-	Normalize(cfg)
+	cfg, err := ParseConfigBytes(data)
+	if err != nil {
+		return nil, "", fmt.Errorf("load %s: %w", resolvedPath, err)
+	}
 	resolvedAuthDir, err := util.ResolveAuthDir(cfg.AuthDir)
 	if err != nil {
 		return nil, "", fmt.Errorf("resolve auth directory: %w", err)
@@ -94,8 +106,9 @@ func WaitForServer(cfg *config.Config, seconds int) bool {
 			request.Header.Set("Anthropic-Version", "2023-06-01")
 			response, err := http.DefaultClient.Do(request)
 			if err == nil {
+				identity := response.Header.Get(GatewayIdentityHeader)
 				_ = response.Body.Close()
-				if response.StatusCode == http.StatusMethodNotAllowed {
+				if response.StatusCode == http.StatusMethodNotAllowed && identity == GatewayIdentityValue {
 					return true
 				}
 			}
@@ -108,17 +121,42 @@ func WaitForServer(cfg *config.Config, seconds int) bool {
 // NewService builds the Claudex-restricted proxy service shared by the CLI and
 // the desktop-bundled server.
 func NewService(cfg *config.Config, configPath string) (*cliproxy.Service, error) {
+	return newService(cfg, configPath, nil)
+}
+
+// NewServiceWithWatcherFactory builds the same production service with an
+// injected watcher factory for deterministic integration tests.
+func NewServiceWithWatcherFactory(cfg *config.Config, configPath string, factory cliproxy.WatcherFactory) (*cliproxy.Service, error) {
+	return newService(cfg, configPath, factory)
+}
+
+// NoopWatcherFactory makes production HTTP composition tests independent of
+// host filesystem watcher limits.
+func NoopWatcherFactory(string, string, func(*config.Config)) (*cliproxy.WatcherWrapper, error) {
+	return &cliproxy.WatcherWrapper{}, nil
+}
+
+func newService(cfg *config.Config, configPath string, factory cliproxy.WatcherFactory) (*cliproxy.Service, error) {
 	if err := ValidateServe(cfg); err != nil {
 		return nil, err
 	}
-	service, err := cliproxy.NewBuilder().
+	builder := cliproxy.NewBuilder().
 		WithConfig(cfg).
 		WithConfigPath(configPath).
+		WithFocusedCodexScope().
 		WithServerOptions(
 			sdkapi.WithMiddleware(Middleware(cfg)),
 			sdkapi.WithAnthropicModelsHandler(FixedModelsHandler()),
-		).
-		Build()
+		)
+	if factory != nil {
+		builder.WithWatcherFactory(factory)
+	} else {
+		builder.WithWatcherFactory(cliproxy.NewWatcherFactoryWithConfigLoader(func(path string) (*config.Config, error) {
+			loaded, _, errLoad := LoadServeConfig(path)
+			return loaded, errLoad
+		}))
+	}
+	service, err := builder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("build service: %w", err)
 	}

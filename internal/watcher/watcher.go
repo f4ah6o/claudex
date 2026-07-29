@@ -29,6 +29,11 @@ type authDirProvider interface {
 	AuthDir() string
 }
 
+// ConfigLoader loads and validates the watched configuration file.
+// The default loader keeps the upstream configuration behavior; focused
+// products can provide a stricter product-owned decoder.
+type ConfigLoader func(string) (*config.Config, error)
+
 // Watcher manages file watching for configuration and authentication files
 type Watcher struct {
 	configPath        string
@@ -44,6 +49,7 @@ type Watcher struct {
 	serverUpdatePend  bool
 	stopped           atomic.Bool
 	reloadCallback    func(*config.Config)
+	configLoader      ConfigLoader
 	watcher           *fsnotify.Watcher
 	lastAuthHashes    map[string]string
 	lastAuthContents  map[string]*coreauth.Auth
@@ -91,6 +97,12 @@ const (
 
 // NewWatcher creates a new file watcher instance
 func NewWatcher(configPath, authDir string, reloadCallback func(*config.Config)) (*Watcher, error) {
+	return NewWatcherWithConfigLoader(configPath, authDir, reloadCallback, config.LoadConfig)
+}
+
+// NewWatcherWithConfigLoader creates a watcher with an explicit configuration
+// loader used for hot reloads.
+func NewWatcherWithConfigLoader(configPath, authDir string, reloadCallback func(*config.Config), loader ConfigLoader) (*Watcher, error) {
 	watcher, errNewWatcher := fsnotify.NewWatcher()
 	if errNewWatcher != nil {
 		return nil, errNewWatcher
@@ -99,6 +111,7 @@ func NewWatcher(configPath, authDir string, reloadCallback func(*config.Config))
 		configPath:      configPath,
 		authDir:         authDir,
 		reloadCallback:  reloadCallback,
+		configLoader:    loader,
 		watcher:         watcher,
 		lastAuthHashes:  make(map[string]string),
 		fileAuthsByPath: make(map[string]map[string]*coreauth.Auth),

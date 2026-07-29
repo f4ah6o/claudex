@@ -51,9 +51,15 @@ git clone https://github.com/f4ah6o/claudex.git
 cd claudex
 go build -o claudex ./cmd/claudex
 cp claudex.example.yaml claudex.yaml
+chmod 600 claudex.yaml
 ```
 
 Replace `replace-with-a-local-random-key` in `claudex.yaml`. This key authenticates local Claude Code clients; it is not an upstream provider credential. Claudex refuses to serve with the placeholder value.
+
+The Claudex configuration schema is intentionally strict. It accepts only the
+listener, local API key, Codex auth directory, retry/logging options, and
+Codex model aliases shown in `claudex.example.yaml`; unknown fields and
+duplicate YAML keys fail startup with a migration hint.
 
 Authenticate Codex and start the proxy:
 
@@ -141,7 +147,7 @@ Because Claudex enforces a loopback-only listener, use host networking on Linux:
 docker build -t claudex .
 docker run --rm --network host \
   -v "$PWD/claudex.yaml:/app/claudex.yaml:ro" \
-  -v "$HOME/.claudex:/root/.claudex" \
+  -v "$HOME/.claudex:/home/claudex/.claudex" \
   claudex
 ```
 
@@ -157,6 +163,11 @@ gitleaks detect --log-opts="--all"
 On macOS, verify the Desktop bundle with `./script/build_and_run.sh --build-only` or `--verify`.
 
 Keep upstream changes isolated from the focused product layer. Normal synchronization should preserve `cmd/claudex`, `cmd/claudexdesktop`, `internal/claudex`, `claudex.example.yaml`, and the Claudex Docker target.
+
+Use [UPSTREAM_SYNC.md](UPSTREAM_SYNC.md) and the machine-readable ownership
+manifest for deliberate, reviewable upstream updates. Tagged releases are
+built by `.github/workflows/release.yml` with separate gateway/Desktop
+archives, checksums, SPDX SBOMs, and provenance attestations.
 
 ## Acknowledgements
 

@@ -99,6 +99,10 @@ type Service struct {
 	// pluginHost owns dynamic plugin lifecycle and runtime capability adapters.
 	pluginHost *pluginhost.Host
 
+	// focusedCodex disables generic provider, plugin, and WebSocket runtime
+	// registration for product-specific gateway integrations.
+	focusedCodex bool
+
 	// shutdownOnce ensures shutdown is called only once.
 	shutdownOnce sync.Once
 
@@ -426,7 +430,18 @@ func (s *Service) registerModelRefreshCallback() {
 }
 
 // newDefaultAuthManager creates a default authentication manager with supported OAuth providers.
+
 func newDefaultAuthManager() *sdkAuth.Manager {
+	return newDefaultAuthManagerForScope(false)
+}
+
+func newDefaultAuthManagerForScope(focusedCodex bool) *sdkAuth.Manager {
+	if focusedCodex {
+		return sdkAuth.NewManager(
+			sdkAuth.GetTokenStore(),
+			sdkAuth.NewCodexAuthenticator(),
+		)
+	}
 	return sdkAuth.NewManager(
 		sdkAuth.GetTokenStore(),
 		sdkAuth.NewCodexAuthenticator(),
@@ -681,6 +696,9 @@ func (s *Service) applyCoreAuthAddOrUpdate(ctx context.Context, auth *coreauth.A
 
 func (s *Service) prepareCoreAuthForModelRegistration(ctx context.Context, auth *coreauth.Auth) *coreauth.Auth {
 	if s == nil || s.coreManager == nil || auth == nil || auth.ID == "" {
+		return nil
+	}
+	if s.focusedCodex && !strings.EqualFold(strings.TrimSpace(auth.Provider), "codex") {
 		return nil
 	}
 	auth = auth.Clone()
@@ -1013,6 +1031,9 @@ func baselineExecutorAuths() []*coreauth.Auth {
 func (s *Service) registerExecutorsForAuths(auths []*coreauth.Auth, forceReplace bool) {
 	reboundCodex := false
 	for _, auth := range auths {
+		if s.focusedCodex && (auth == nil || !strings.EqualFold(strings.TrimSpace(auth.Provider), "codex")) {
+			continue
+		}
 		if auth != nil && strings.EqualFold(strings.TrimSpace(auth.Provider), "codex") {
 			if reboundCodex && forceReplace {
 				continue
@@ -1671,7 +1692,9 @@ func (s *Service) Run(ctx context.Context) error {
 
 	// legacy clients removed; no caches to refresh
 
-	s.ensureWebsocketGateway()
+	if !s.focusedCodex {
+		s.ensureWebsocketGateway()
+	}
 	if homeEnabled {
 		s.registerAvailableExecutors(ctx, executorRegistrationOptions{
 			includeBaseline: true,

@@ -89,7 +89,11 @@ func (w *Watcher) reloadConfig() bool {
 	log.Debug("=========================== CONFIG RELOAD ============================")
 	log.Debugf("starting config reload from: %s", w.configPath)
 
-	newConfig, errLoadConfig := config.LoadConfig(w.configPath)
+	loader := w.configLoader
+	if loader == nil {
+		loader = config.LoadConfig
+	}
+	newConfig, errLoadConfig := loader(w.configPath)
 	if errLoadConfig != nil {
 		log.Errorf("failed to reload config: %v", errLoadConfig)
 		return false
