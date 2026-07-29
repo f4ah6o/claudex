@@ -34,8 +34,10 @@ func TestFixedModelsHandler(t *testing.T) {
 
 	var response struct {
 		Data []struct {
-			ID          string `json:"id"`
-			DisplayName string `json:"display_name"`
+			ID             string `json:"id"`
+			DisplayName    string `json:"display_name"`
+			MaxInputTokens int    `json:"max_input_tokens"`
+			MaxTokens      int    `json:"max_tokens"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
@@ -50,6 +52,12 @@ func TestFixedModelsHandler(t *testing.T) {
 		}
 		if response.Data[index].DisplayName != profile.Label {
 			t.Fatalf("model %d display name = %q, want %q", index, response.Data[index].DisplayName, profile.Label)
+		}
+		if response.Data[index].MaxInputTokens != modelMaxInputTokens {
+			t.Fatalf("model %d max input tokens = %d, want %d", index, response.Data[index].MaxInputTokens, modelMaxInputTokens)
+		}
+		if response.Data[index].MaxTokens != modelMaxTokens {
+			t.Fatalf("model %d max tokens = %d, want %d", index, response.Data[index].MaxTokens, modelMaxTokens)
 		}
 	}
 }
