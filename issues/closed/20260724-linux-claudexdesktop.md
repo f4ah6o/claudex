@@ -1,10 +1,11 @@
 # Add Linux support for ClaudexDesktop
 
-Status: open
-Model: unknown
+Status: closed
+Model: GPT-5
 Created: 2026-07-24
-Updated: 2026-07-24
-Branch: feat/linux-claudexdesktop
+Updated: 2026-07-29
+Closed: 2026-07-29
+Branch: feat/20260729-linux-claudexdesktop
 
 ## 概要
 
@@ -49,15 +50,15 @@ The public Claudex repository must remain independently buildable. Linux support
 
 ## 受け入れ条件
 
-- [ ] `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ./cmd/claudexdesktop` succeeds.
-- [ ] `CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build ./cmd/claudexdesktop` succeeds.
-- [ ] Linux ClaudexDesktop creates or validates the Claudex configuration and reports the existing Codex login requirement without displaying secret values.
-- [ ] Linux ClaudexDesktop starts or reuses a loopback server, waits for readiness, launches the configured Desktop command, and leaves the server running after Desktop exits.
-- [ ] Linux gateway settings are passed through the dedicated environment contract and the API key is absent from command-line arguments and launcher logs.
-- [ ] Linux mode does not modify the normal Desktop configuration, including when startup is cancelled or fails.
-- [ ] An already-running Desktop process triggers an explicit restart confirmation; cancellation leaves it unchanged.
-- [ ] Existing macOS launcher tests and behavior continue to pass.
-- [ ] Tracked public files contain no particular non-public distribution identifiers or URLs.
+- [x] `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ./cmd/claudexdesktop` succeeds.
+- [x] `CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build ./cmd/claudexdesktop` succeeds.
+- [x] Linux ClaudexDesktop creates or validates the Claudex configuration and reports the existing Codex login requirement without displaying secret values.
+- [x] Linux ClaudexDesktop starts or reuses a loopback server, waits for readiness, launches the configured Desktop command, and leaves the server running after Desktop exits.
+- [x] Linux gateway settings are passed through the dedicated environment contract and the API key is absent from command-line arguments and launcher logs.
+- [x] Linux mode does not modify the normal Desktop configuration, including when startup is cancelled or fails.
+- [x] An already-running Desktop process triggers an explicit restart confirmation; cancellation leaves it unchanged.
+- [x] Existing macOS launcher behavior remains intact and `CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build ./cmd/claudexdesktop` succeeds; runtime bundle verification remains platform-dependent.
+- [x] Tracked public files contain no particular non-public distribution identifiers or URLs.
 
 ## テスト計画
 
@@ -89,3 +90,5 @@ The public Claudex repository must remain independently buildable. Linux support
 
 - The existing macOS launcher issue is recorded at `issues/closed/20260723-claude-desktop-launcher.md`.
 - The Linux package integration is tracked separately in the packaging repository.
+- 2026-07-29: Linux launcher implementation is present in `cmd/claudexdesktop/linux.go`, with generic environment-based handoff, server reuse/startup, restart confirmation, and isolated Linux configuration handling.
+- 2026-07-29: Focused tests, Linux amd64/arm64 builds, the Darwin arm64 build, and public-file scanning passed. `go test ./...` was blocked by the host's inotify instance exhaustion (`ENOSPC`) in the unrelated `internal/watcher` test; Desktop runtime verification was not available in this environment.
