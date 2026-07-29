@@ -8,7 +8,7 @@ Branch: ci/20260729-release-security-gates
 
 ## Summary
 
-Create a complete CI and release contract for the supported CLI and Desktop artifacts across Linux, macOS, and Windows, with reproducible metadata, vulnerability checks, secret scanning, checksums, and smoke tests.
+Create a complete CI and release contract for the supported CLI across Linux, macOS, and Windows and for Desktop artifacts on macOS and Linux, with reproducible metadata, vulnerability checks, secret scanning, checksums, and smoke tests.
 
 ## Problem
 
