@@ -51,9 +51,12 @@ git clone https://github.com/f4ah6o/claudex.git
 cd claudex
 go build -o claudex ./cmd/claudex
 cp claudex.example.yaml claudex.yaml
+chmod 600 claudex.yaml
 ```
 
 `claudex.yaml` の `replace-with-a-local-random-key` を、ローカルで使用するランダムなキーに置き換えてください。このキーはClaude CodeからClaudexへの認証用であり、上流プロバイダーの認証情報ではありません。プレースホルダーのままでは起動できません。
+
+Claudexの設定スキーマは意図的に厳格です。listener、ローカルAPIキー、Codex認証ディレクトリ、retry／logging設定、Codex model aliasだけを受け付けます。未知フィールドと重複YAMLキーはmigration案内付きで起動前に拒否されます。
 
 Codexにログインしてプロキシを起動します。
 
@@ -141,7 +144,7 @@ go install github.com/f4ah6o/claudex/cmd/claudex@latest
 docker build -t claudex .
 docker run --rm --network host \
   -v "$PWD/claudex.yaml:/app/claudex.yaml:ro" \
-  -v "$HOME/.claudex:/root/.claudex" \
+  -v "$HOME/.claudex:/home/claudex/.claudex" \
   claudex
 ```
 
@@ -157,6 +160,8 @@ gitleaks detect --log-opts="--all"
 macOSでは `./script/build_and_run.sh --build-only` または `--verify` でDesktop bundleを確認します。
 
 upstreamの変更を専用プロダクト層と分離して取り込んでください。通常の同期では `cmd/claudex`、`cmd/claudexdesktop`、`internal/claudex`、`claudex.example.yaml`、Claudex用Docker targetを維持します。
+
+機械可読のownership manifestと [UPSTREAM_SYNC.md](UPSTREAM_SYNC.md) を使って、レビュー可能な同期を実行してください。tag releaseではgatewayとDesktopを分離したarchive、checksum、SPDX SBOM、provenance attestationを生成します。
 
 ## Acknowledgements / 謝辞
 

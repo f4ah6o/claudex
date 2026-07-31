@@ -21,11 +21,22 @@ const (
 	DefaultPort           = 8317
 	DefaultAuthDir        = "~/.claudex"
 	DefaultEffort         = "xhigh"
+	GatewayIdentityHeader = "X-Claudex-Gateway"
+	GatewayIdentityValue  = "claudex-v1"
 	maxRequestBodyBytes   = 32 << 20
 	anthropicMessagesPath = "/v1/messages"
 	anthropicCountPath    = "/v1/messages/count_tokens"
 	anthropicModelsPath   = "/v1/models"
 )
+
+// AllowedRoutes is the complete client-visible route contract. The shared
+// server may retain upstream handlers for synchronization, but this list is
+// the only surface the Claudex middleware allows through.
+var AllowedRoutes = []string{
+	anthropicModelsPath,
+	anthropicMessagesPath,
+	anthropicCountPath,
+}
 
 // Policy restricts the generic proxy core to the surface needed by Claude Code
 // and to Codex models in the GPT-5.6 family.
@@ -285,9 +296,10 @@ func (p Policy) AllowsModel(model string) bool {
 func Middleware(cfg *config.Config) gin.HandlerFunc {
 	policy := NewPolicy(cfg)
 	return func(c *gin.Context) {
+		c.Header(GatewayIdentityHeader, GatewayIdentityValue)
 		path := c.Request.URL.Path
 		if path == "/" {
-			c.Next()
+			abortAnthropic(c, http.StatusNotFound, "not_found_error", "Claudex exposes only the Anthropic Messages API")
 			return
 		}
 		if path == anthropicModelsPath {
@@ -354,7 +366,14 @@ func Middleware(cfg *config.Config) gin.HandlerFunc {
 
 func applyDefaultEffort(body []byte) ([]byte, error) {
 	thinkingType := strings.ToLower(strings.TrimSpace(gjson.GetBytes(body, "thinking.type").String()))
-	if thinkingType == "disabled" || gjson.GetBytes(body, "output_config.effort").Exists() {
+	effort := gjson.GetBytes(body, "output_config.effort")
+	if effort.Exists() {
+		if effort.Type == gjson.String && strings.EqualFold(strings.TrimSpace(effort.String()), "max") {
+			return sjson.SetBytes(body, "output_config.effort", DefaultEffort)
+		}
+		return body, nil
+	}
+	if thinkingType == "disabled" {
 		return body, nil
 	}
 	updated, err := sjson.SetBytes(body, "thinking.type", "adaptive")

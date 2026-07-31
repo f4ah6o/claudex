@@ -37,6 +37,14 @@ go build -o test-output ./cmd/claudex && rm test-output # Verify compile (REQUIR
 - `sdk/cliproxy/` — Shared service, builder, auth, watcher, and execution runtime
 - `test/` — Cross-module integration tests
 
+The Claudex composition root is `internal/claudex/service.go`: it supplies the
+focused route middleware and fixed Anthropic model catalog to the retained
+shared runtime. `internal/claudex/policy.go` is the enforced HTTP boundary;
+only `/v1/models`, `/v1/messages`, and `/v1/messages/count_tokens` are
+client-visible. Upstream management, plugin, Amp, WebSocket, and non-Codex
+handlers remain available for synchronization but must not be added to the
+Claudex composition root or bypass the policy middleware.
+
 ## Code Conventions
 - Keep changes small and simple (KISS)
 - Comments in English only

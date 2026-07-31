@@ -15,26 +15,6 @@ disable-image-generation: true
 request-retry: 2
 max-retry-interval: 15
 
-remote-management:
-  allow-remote: false
-  secret-key: ""
-  disable-control-panel: true
-  disable-auto-update-panel: true
-
-plugins:
-  enabled: false
-  dir: "plugins"
-
-routing:
-  strategy: "round-robin"
-  session-affinity: true
-  session-affinity-ttl: "2h"
-
-quota-exceeded:
-  switch-project: false
-  switch-preview-model: false
-  antigravity-credits: false
-
 # Claude Code may send Anthropic model IDs even when its base URL is redirected.
 # These aliases pin Claude Code tiers to the supported GPT-5.6 Codex models.
 # Direct gpt-5.6 and gpt-5.6-* model names are also accepted.

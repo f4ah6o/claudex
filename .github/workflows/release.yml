@@ -1,0 +1,127 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build gateway and Desktop launcher
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+          VERSION: ${{ github.ref_name }}
+          COMMIT: ${{ github.sha }}
+          BUILD_DATE: ${{ github.event.head_commit.timestamp || '' }}
+        run: |
+          set -eu
+          mkdir -p dist
+          suffix=""
+          if [ "$GOOS" = windows ]; then suffix=".exe"; fi
+          go build -trimpath -buildvcs=false -ldflags="-s -w -X main.Version=$VERSION -X main.Commit=$COMMIT -X main.BuildDate=$BUILD_DATE" -o "dist/claudex-${GOOS}-${GOARCH}${suffix}" ./cmd/claudex
+          if [ "$GOOS" != windows ]; then
+            go build -trimpath -buildvcs=false -o "dist/claudexdesktop-${GOOS}-${GOARCH}${suffix}" ./cmd/claudexdesktop
+          fi
+      - name: Create archive and checksum
+        run: |
+          set -eu
+          gateway="claudex-gateway-${{ matrix.goos }}-${{ matrix.goarch }}"
+          desktop="claudex-desktop-${{ matrix.goos }}-${{ matrix.goarch }}"
+          tar -C dist -czf "dist/${gateway}.tar.gz" "claudex-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}"
+          (cd dist && sha256sum "${gateway}.tar.gz" > "${gateway}.sha256")
+          if [ "${{ matrix.goos }}" != windows ]; then
+            tar -C dist -czf "dist/${desktop}.tar.gz" "claudexdesktop-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}"
+            (cd dist && sha256sum "${desktop}.tar.gz" > "${desktop}.sha256")
+          fi
+      - name: Smoke-test Linux gateway
+        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
+        run: |
+          set -eu
+          config="${RUNNER_TEMP}/claudex.yaml"
+          printf '%s\n' 'host: 127.0.0.1' 'port: 18317' 'api-keys:' '  - smoke-test-key' > "$config"
+          chmod 600 "$config"
+          ./dist/claudex-linux-amd64 serve --config "$config" >"${RUNNER_TEMP}/claudex.stdout" 2>"${RUNNER_TEMP}/claudex.stderr" &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          headers="${RUNNER_TEMP}/claudex.headers"
+          for attempt in $(seq 1 40); do
+            if curl -fsS \
+              -D "$headers" \
+              -H 'Authorization: Bearer smoke-test-key' \
+              -H 'Anthropic-Version: 2023-06-01' \
+              http://127.0.0.1:18317/v1/models >/dev/null \
+              && grep -Eiq '^X-Claudex-Gateway:[[:space:]]*claudex-v1[[:space:]]*$' "$headers"; then
+              kill "$pid"
+              wait "$pid" || true
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat "${RUNNER_TEMP}/claudex.stderr"
+          exit 1
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@d94f46e13c6c62f59525ac9a1e147a99dc0b9bf5 # v0.17.0
+        with:
+          path: .
+          format: spdx-json
+          output-file: dist/claudex-${{ matrix.goos }}-${{ matrix.goarch }}.sbom.spdx.json
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: dist
+          pattern: release-*
+          merge-multiple: true
+      - name: Attest release subjects
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
+        with:
+          subject-path: dist/*.tar.gz
+      - name: Publish release archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          gh release create "$GITHUB_REF_NAME" dist/* --generate-notes --verify-tag

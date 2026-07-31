@@ -58,6 +58,10 @@ type Builder struct {
 
 	// serverOptions contains additional server configuration options.
 	serverOptions []api.ServerOption
+
+	// focusedCodex restricts runtime registration to the Codex provider and the
+	// Anthropic Messages route surface required by a focused product.
+	focusedCodex bool
 }
 
 // Hooks allows callers to plug into service lifecycle stages.
@@ -160,6 +164,13 @@ func (b *Builder) WithServerOptions(opts ...api.ServerOption) *Builder {
 	return b
 }
 
+// WithFocusedCodexScope restricts the service to Codex authentication,
+// executors, and the Anthropic Messages HTTP surface.
+func (b *Builder) WithFocusedCodexScope() *Builder {
+	b.focusedCodex = true
+	return b
+}
+
 // WithLocalManagementPassword configures a password that is only accepted from localhost management requests.
 func (b *Builder) WithLocalManagementPassword(password string) *Builder {
 	if password == "" {
@@ -205,7 +216,7 @@ func (b *Builder) Build() (*Service, error) {
 
 	authManager := b.authManager
 	if authManager == nil {
-		authManager = newDefaultAuthManager()
+		authManager = newDefaultAuthManagerForScope(b.focusedCodex)
 	}
 
 	accessManager := b.accessManager
@@ -215,12 +226,14 @@ func (b *Builder) Build() (*Service, error) {
 
 	configaccess.Register(&b.cfg.SDKConfig)
 	pluginHost := b.pluginHost
-	if pluginHost == nil {
-		pluginHost = pluginhost.New()
-	}
-	if b.cfg != nil {
-		pluginHost.ApplyConfig(context.Background(), b.cfg)
-		pluginHost.RegisterFrontendAuthProviders()
+	if !b.focusedCodex {
+		if pluginHost == nil {
+			pluginHost = pluginhost.New()
+		}
+		if b.cfg != nil {
+			pluginHost.ApplyConfig(context.Background(), b.cfg)
+			pluginHost.RegisterFrontendAuthProviders()
+		}
 	}
 	accessManager.SetProviders(sdkaccess.RegisteredProviders())
 
@@ -281,6 +294,7 @@ func (b *Builder) Build() (*Service, error) {
 		accessManager:  accessManager,
 		coreManager:    coreManager,
 		pluginHost:     pluginHost,
+		focusedCodex:   b.focusedCodex,
 		serverOptions:  append([]api.ServerOption(nil), b.serverOptions...),
 	}
 	if b.postAuthHook != nil {
@@ -293,6 +307,9 @@ func (b *Builder) Build() (*Service, error) {
 			service.reloadConfigFromWatcher()
 		}),
 	)
+	if b.focusedCodex {
+		service.serverOptions = append(service.serverOptions, api.WithFocusedRoutes())
+	}
 	return service, nil
 }
 

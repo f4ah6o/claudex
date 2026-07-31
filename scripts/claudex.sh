@@ -35,7 +35,17 @@ case "$local_key" in
 esac
 
 is_ready() {
-    command -v curl >/dev/null 2>&1 && curl -sS --max-time 2 "$base_url/" >/dev/null 2>&1
+    command -v curl >/dev/null 2>&1 || return 1
+    headers=$(curl -sS --max-time 2 -D - -o /dev/null \
+        -H "Authorization: Bearer $local_key" \
+        -H 'Anthropic-Version: 2023-06-01' \
+        "$base_url/v1/messages" 2>/dev/null) || return 1
+    printf '%s\n' "$headers" | awk '
+        BEGIN { IGNORECASE=1 }
+        /^HTTP\/[0-9.]+[[:space:]]+405([[:space:]]|$)/ { status=1 }
+        /^X-Claudex-Gateway:[[:space:]]*claudex-v1[[:space:]]*$/ { identity=1 }
+        END { exit !(status && identity) }
+    '
 }
 
 if ! is_ready; then

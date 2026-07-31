@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added a strict Claudex-owned configuration decoder, gateway identity checks, route architecture tests, and an ownership-aware upstream synchronization workflow.
+- Added release automation for cross-platform gateway/Desktop archives, checksums, SPDX SBOMs, smoke tests, and provenance attestations.
 - Added the macOS `ClaudexDesktop.app` launcher for Claude Desktop, including loopback Gateway setup, Sol/Terra/Luna model discovery, and standard-provider restoration. (`issues/closed/20260723-claude-desktop-launcher.md`)
 - Added a generic Linux `ClaudexDesktop` launcher mode with environment-based gateway handoff and separate Desktop process lifecycle management. (`issues/closed/20260724-linux-claudexdesktop.md`)
 - Added full-history secret scanning and reachable Go vulnerability checks for public repository changes. (`issues/closed/20260724-public-release-readiness.md`)
@@ -11,6 +13,8 @@
 
 ### Changed
 
+- Hardened macOS Desktop preference sessions with single-owner locks, transaction checksums, atomic private state writes, and conflict-aware recovery.
+- The Docker image now uses a CGO-free build and runs the gateway as a non-root user.
 - Exposed an authenticated Anthropic-format `/v1/models` catalog containing the three Codex-backed profiles: Fable 5/Sol, Opus 5/Terra, and Sonnet 5/Luna.
 - Added interactive CLI model and effort switching, including `max` to `xhigh` normalization for GPT.
 - Documented Claudex as an independent local single-user project, including the name origin, credential boundaries, supported installation method, and retained upstream Go module path.

@@ -19,7 +19,10 @@ function Resolve-ClaudexPath {
 }
 
 function Test-ClaudexReady {
-    param([Parameter(Mandatory = $true)][string]$Url)
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [Parameter(Mandatory = $true)][string]$Key
+    )
 
     $request = $null
     $response = $null
@@ -27,11 +30,16 @@ function Test-ClaudexReady {
         $request = [System.Net.WebRequest]::Create($Url)
         $request.Method = "GET"
         $request.Timeout = 2000
+        $request.Headers["Authorization"] = "Bearer $Key"
+        $request.Headers["Anthropic-Version"] = "2023-06-01"
         $response = $request.GetResponse()
-        return $true
+        return ($response.StatusCode -eq [System.Net.HttpStatusCode]::MethodNotAllowed -and
+            $response.Headers["X-Claudex-Gateway"] -eq "claudex-v1")
     } catch [System.Net.WebException] {
-        # Any HTTP response, including 404, proves that the listener is alive.
-        return ($null -ne $_.Exception.Response)
+        $response = $_.Exception.Response
+        return ($null -ne $response -and
+            $response.StatusCode -eq [System.Net.HttpStatusCode]::MethodNotAllowed -and
+            $response.Headers["X-Claudex-Gateway"] -eq "claudex-v1")
     } catch {
         return $false
     } finally {
@@ -83,7 +91,7 @@ if ([string]::IsNullOrWhiteSpace($baseUrl)) {
 $baseUrl = $baseUrl -replace '/+$', ''
 $localKey = Get-ClaudexLocalKey $configPath
 
-if (-not (Test-ClaudexReady "$baseUrl/")) {
+if (-not (Test-ClaudexReady "$baseUrl/v1/messages" $localKey)) {
     if ($env:CLAUDEX_NO_START -eq "1") {
         throw "Claudex server is not running at $baseUrl"
     }
@@ -107,7 +115,7 @@ if (-not (Test-ClaudexReady "$baseUrl/")) {
 
     $ready = $false
     for ($attempt = 0; $attempt -lt 60; $attempt++) {
-        if (Test-ClaudexReady "$baseUrl/") {
+        if (Test-ClaudexReady "$baseUrl/v1/messages" $localKey) {
             $ready = $true
             break
         }

@@ -259,6 +259,14 @@ func TestApplyDefaultEffort(t *testing.T) {
 	if gjson.GetBytes(body, "output_config.effort").Exists() {
 		t.Fatal("disabled thinking unexpectedly received output_config.effort")
 	}
+
+	body, err = applyDefaultEffort([]byte(`{"model":"gpt-5.6-luna","thinking":{"type":"adaptive"},"output_config":{"effort":"max"}}`))
+	if err != nil {
+		t.Fatalf("applyDefaultEffort() with max effort error = %v", err)
+	}
+	if got := gjson.GetBytes(body, "output_config.effort").String(); got != DefaultEffort {
+		t.Fatalf("max effort = %q, want %q", got, DefaultEffort)
+	}
 }
 
 func TestMiddlewareRestrictsRoutesAndModels(t *testing.T) {
@@ -312,6 +320,19 @@ func TestMiddlewareRestrictsRoutesAndModels(t *testing.T) {
 	}
 	if handled != 4 {
 		t.Fatalf("handler called %d times, want 4", handled)
+	}
+}
+
+func TestMiddlewareAdvertisesGatewayIdentity(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(Middleware(&config.Config{}))
+	router.GET("/", func(c *gin.Context) { c.Status(http.StatusOK) })
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/", nil))
+	if got := recorder.Header().Get(GatewayIdentityHeader); got != GatewayIdentityValue {
+		t.Fatalf("gateway identity = %q, want %q", got, GatewayIdentityValue)
 	}
 }
 

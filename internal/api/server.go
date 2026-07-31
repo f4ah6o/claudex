@@ -86,6 +86,7 @@ type serverOptionConfig struct {
 	pluginHost             *pluginhost.Host
 	configReloadHook       func(context.Context, *config.Config)
 	exampleAPIKeySafeMode  bool
+	focusedRoutes          bool
 }
 
 // ServerOption customises HTTP server construction.
@@ -137,6 +138,14 @@ func WithRouterConfigurator(fn func(*gin.Engine, *handlers.BaseAPIHandler, *conf
 func WithAnthropicModelsHandler(handler gin.HandlerFunc) ServerOption {
 	return func(cfg *serverOptionConfig) {
 		cfg.anthropicModelsHandler = handler
+	}
+}
+
+// WithFocusedRoutes limits registration to the Anthropic Messages endpoints
+// required by a focused product integration.
+func WithFocusedRoutes() ServerOption {
+	return func(cfg *serverOptionConfig) {
+		cfg.focusedRoutes = true
 	}
 }
 
@@ -391,7 +400,11 @@ func NewServer(cfg *config.Config, authManager *auth.Manager, accessManager *sdk
 	engine.Use(s.exampleAPIKeySafeModeMiddleware())
 
 	// Setup routes
-	s.setupRoutes()
+	if optionState.focusedRoutes {
+		s.setupFocusedRoutes()
+	} else {
+		s.setupRoutes()
+	}
 
 	// Apply additional router configurators from options
 	if optionState.routerConfigurator != nil {
@@ -406,8 +419,10 @@ func NewServer(cfg *config.Config, authManager *auth.Manager, accessManager *sdk
 	if hasManagementSecret {
 		s.registerManagementRoutes()
 	}
-	s.refreshPluginManagementRoutes()
-	engine.NoRoute(s.pluginManagementNoRoute)
+	if !optionState.focusedRoutes {
+		s.refreshPluginManagementRoutes()
+		engine.NoRoute(s.pluginManagementNoRoute)
+	}
 
 	if optionState.keepAliveEnabled {
 		s.enableKeepAlive(optionState.keepAliveTimeout, optionState.keepAliveOnTimeout)
@@ -636,6 +651,19 @@ func (s *Server) setupRoutes() {
 	})
 
 	// Management routes are registered lazily by registerManagementRoutes when a secret is configured.
+}
+
+// setupFocusedRoutes registers only the Anthropic Messages surface supported
+// by a focused Claudex composition root.
+func (s *Server) setupFocusedRoutes() {
+	openaiHandlers := openai.NewOpenAIAPIHandler(s.handlers)
+	claudeCodeHandlers := claude.NewClaudeCodeAPIHandler(s.handlers)
+
+	v1 := s.engine.Group("/v1")
+	v1.Use(AuthMiddleware(s.accessManager))
+	v1.GET("/models", s.unifiedModelsHandler(openaiHandlers, claudeCodeHandlers))
+	v1.POST("/messages", claudeCodeHandlers.ClaudeMessages)
+	v1.POST("/messages/count_tokens", claudeCodeHandlers.ClaudeCountTokens)
 }
 
 // codexAlphaSearch forwards the standalone search endpoint used by current
