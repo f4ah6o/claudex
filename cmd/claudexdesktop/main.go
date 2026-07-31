@@ -166,10 +166,17 @@ func runDarwin() error {
 	if err = writePreferenceBackup(pendingPath, snapshot); err != nil {
 		return err
 	}
+	appliedStateCaptured := false
 	var restoreOnce sync.Once
 	restore := func() {
 		restoreOnce.Do(func() {
-			if errRestore := snapshot.restore(); errRestore != nil {
+			var errRestore error
+			if appliedStateCaptured {
+				errRestore = snapshot.restore()
+			} else {
+				errRestore = snapshot.restoreOriginal()
+			}
+			if errRestore != nil {
 				logMessage("could not restore Claude Desktop preferences: " + errRestore.Error())
 				return
 			}
@@ -186,6 +193,7 @@ func runDarwin() error {
 	}
 	snapshot.AppliedValues = applied.Values
 	snapshot.AppliedConfigLibrary = applied.ConfigLibrary
+	appliedStateCaptured = true
 	if err = writePreferenceBackup(pendingPath, snapshot); err != nil {
 		return err
 	}
@@ -366,11 +374,15 @@ func capturePreferences() (preferenceSnapshot, error) {
 }
 
 func (snapshot preferenceSnapshot) restore() error {
-	if len(snapshot.Values) != len(desktopPreferenceKeys) {
-		return errors.New("Claude Desktop preference backup is incomplete")
-	}
 	if err := snapshot.verifyAppliedState(); err != nil {
 		return err
+	}
+	return snapshot.restoreOriginal()
+}
+
+func (snapshot preferenceSnapshot) restoreOriginal() error {
+	if len(snapshot.Values) != len(desktopPreferenceKeys) {
+		return errors.New("Claude Desktop preference backup is incomplete")
 	}
 	for _, key := range desktopPreferenceKeys {
 		value := snapshot.Values[key]
