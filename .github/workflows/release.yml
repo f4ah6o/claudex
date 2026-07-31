@@ -58,10 +58,10 @@ jobs:
           gateway="claudex-gateway-${{ matrix.goos }}-${{ matrix.goarch }}"
           desktop="claudex-desktop-${{ matrix.goos }}-${{ matrix.goarch }}"
           tar -C dist -czf "dist/${gateway}.tar.gz" "claudex-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}"
-          sha256sum "dist/${gateway}.tar.gz" > "dist/${gateway}.sha256"
+          (cd dist && sha256sum "${gateway}.tar.gz" > "${gateway}.sha256")
           if [ "${{ matrix.goos }}" != windows ]; then
             tar -C dist -czf "dist/${desktop}.tar.gz" "claudexdesktop-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}"
-            sha256sum "dist/${desktop}.tar.gz" > "dist/${desktop}.sha256"
+            (cd dist && sha256sum "${desktop}.tar.gz" > "${desktop}.sha256")
           fi
       - name: Smoke-test Linux gateway
         if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
@@ -69,6 +69,7 @@ jobs:
           set -eu
           config="${RUNNER_TEMP}/claudex.yaml"
           printf '%s\n' 'host: 127.0.0.1' 'port: 18317' 'api-keys:' '  - smoke-test-key' > "$config"
+          chmod 600 "$config"
           ./dist/claudex-linux-amd64 serve --config "$config" >"${RUNNER_TEMP}/claudex.stdout" 2>"${RUNNER_TEMP}/claudex.stderr" &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
