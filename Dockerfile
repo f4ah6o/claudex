@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -buildvcs=false \
 
 FROM debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata util-linux \
     && useradd --system --home-dir /home/claudex --create-home --shell /usr/sbin/nologin claudex \
     && rm -rf /var/lib/apt/lists/*
 
@@ -25,10 +25,10 @@ WORKDIR /app
 
 COPY --from=builder /out/claudex /app/claudex
 COPY claudex.example.yaml /app/claudex.example.yaml
-
-USER claudex
+COPY scripts/docker-entrypoint.sh /usr/local/bin/claudex-entrypoint
+RUN chmod 0755 /usr/local/bin/claudex-entrypoint
 
 EXPOSE 8317
 
-ENTRYPOINT ["/app/claudex"]
+ENTRYPOINT ["/usr/local/bin/claudex-entrypoint"]
 CMD ["serve", "--config", "/app/claudex.yaml"]
